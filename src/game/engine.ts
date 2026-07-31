@@ -3,7 +3,7 @@ import { applyShot, isFleetDestroyed, placeFleetRandomly } from './board'
 import { coordLabel } from './constants'
 import type { Board, Coord, PlayerId, RandomFn, ShotResult } from './types'
 
-export type Phase = 'human-turn' | 'ai-turn' | 'game-over'
+export type Phase = 'placement' | 'human-turn' | 'ai-turn' | 'game-over'
 
 export interface GameState {
   humanBoard: Board
@@ -19,9 +19,19 @@ export function createGame(random: RandomFn = Math.random): GameState {
   return {
     humanBoard: placeFleetRandomly(undefined, undefined, random),
     aiBoard: placeFleetRandomly(undefined, undefined, random),
-    phase: 'human-turn',
+    phase: 'placement',
     winner: null,
-    log: ['Fleets deployed. Take your shot!'],
+    log: ['Fleet at anchor. Drag your ships into position.'],
+  }
+}
+
+/** Locks in the human fleet layout and begins the duel. */
+export function startBattle(state: GameState): GameState {
+  if (state.phase !== 'placement') return state
+  return {
+    ...state,
+    phase: 'human-turn',
+    log: appendLog(state.log, 'Fleets deployed. Take your shot!'),
   }
 }
 

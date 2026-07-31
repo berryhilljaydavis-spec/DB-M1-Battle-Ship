@@ -1,7 +1,15 @@
 import { COLUMN_LABELS } from '../game/constants'
-import type { Board as BoardModel } from '../game/types'
+import type { Board as BoardModel, Coord } from '../game/types'
 import { Cell } from './Cell'
 import { isShotAllowed } from '../game/board'
+
+export interface BoardPlacement {
+  /** Cells of the ship currently picked up. */
+  isSelected: (coord: Coord) => boolean
+  isShip: (coord: Coord) => boolean
+  onGrab: (row: number, col: number) => void
+  onDrop: (row: number, col: number) => void
+}
 
 export interface BoardProps {
   title: string
@@ -9,6 +17,7 @@ export interface BoardProps {
   revealShips: boolean
   interactive: boolean
   onFire?: (row: number, col: number) => void
+  placement?: BoardPlacement
 }
 
 export function Board({
@@ -17,6 +26,7 @@ export function Board({
   revealShips,
   interactive,
   onFire,
+  placement,
 }: BoardProps) {
   return (
     <section className="board" aria-label={title}>
@@ -37,6 +47,7 @@ export function Board({
             revealShips={revealShips}
             interactive={interactive}
             onFire={onFire}
+            placement={placement}
           />
         ))}
       </div>
@@ -56,6 +67,7 @@ function FragmentRow({
   revealShips,
   interactive,
   onFire,
+  placement,
 }: FragmentRowProps) {
   return (
     <>
@@ -69,6 +81,10 @@ function FragmentRow({
           revealShips={revealShips}
           interactive={interactive && isShotAllowed(board, { row, col })}
           onFire={onFire}
+          selected={placement?.isSelected({ row, col })}
+          draggable={placement?.isShip({ row, col })}
+          onDragStart={placement?.onGrab}
+          onDrop={placement?.onDrop}
         />
       ))}
     </>

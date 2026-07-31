@@ -9,6 +9,7 @@ function statusText({ phase, winner }: GameState): string {
   if (phase === 'game-over') {
     return winner === 'human' ? 'Victory! You win.' : 'Defeat. The AI wins.'
   }
+  if (phase === 'placement') return 'Position your fleet, then start the battle.'
   return phase === 'human-turn' ? 'Your turn — fire at will.' : 'AI is aiming…'
 }
 

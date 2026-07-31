@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aiFire, createGame, humanFire } from './engine'
+import { aiFire, createGame, humanFire, startBattle } from './engine'
 import type { GameState } from './engine'
 import { createEmptyBoard, placeShip } from './board'
 import { BOARD_SIZE, FLEET } from './constants'
@@ -18,12 +18,25 @@ function stateWithSingleShips(): GameState {
 }
 
 describe('createGame', () => {
-  it('deploys both fleets and gives the human the first turn', () => {
+  it('deploys both fleets and opens in the placement phase', () => {
     const game = createGame(seededRandom(3))
     expect(game.humanBoard.ships).toHaveLength(FLEET.length)
     expect(game.aiBoard.ships).toHaveLength(FLEET.length)
-    expect(game.phase).toBe('human-turn')
+    expect(game.phase).toBe('placement')
     expect(game.winner).toBeNull()
+  })
+})
+
+describe('startBattle', () => {
+  it('hands the first turn to the human', () => {
+    const game = startBattle(createGame(seededRandom(3)))
+    expect(game.phase).toBe('human-turn')
+    expect(game.log[0]).toContain('Fleets deployed')
+  })
+
+  it('is a no-op once the battle is under way', () => {
+    const game = startBattle(createGame(seededRandom(3)))
+    expect(startBattle(game)).toBe(game)
   })
 })
 
@@ -84,7 +97,7 @@ describe('full game', () => {
   it('always terminates with exactly one winner', () => {
     for (const seed of [1, 2, 3, 4, 5]) {
       const random = seededRandom(seed)
-      let state = createGame(random)
+      let state = startBattle(createGame(random))
       const shots: Coord[] = []
       for (let row = 0; row < BOARD_SIZE; row++) {
         for (let col = 0; col < BOARD_SIZE; col++) shots.push({ row, col })

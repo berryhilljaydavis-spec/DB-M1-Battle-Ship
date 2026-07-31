@@ -4,6 +4,14 @@ A browser-only Battleship game built with React 19, TypeScript and Vite. You pla
 10x10 board against an AI opponent; both fleets are placed randomly at the start of
 every game and the AI fires at uniformly random cells it has not tried yet.
 
+## Playing
+
+Each game opens in a placement phase: your fleet starts at random positions and you
+can drag a ship onto another square, or click it and click its new position. `Rotate
+(R)` flips the selected ship, `Randomize` re-rolls the whole fleet, and `Start battle`
+locks the layout in. Overlapping or off-board positions are rejected. Every hit plays
+a short explosion on the struck cell (skipped when `prefers-reduced-motion` is set).
+
 ## Getting started
 
 Requires Node 22 (see `.nvmrc`).
@@ -23,7 +31,7 @@ npm run dev        # http://localhost:5173
 | `npm test` | Run the Vitest suite once |
 | `npm run test:watch` | Run Vitest in watch mode |
 | `npm run typecheck` | Type-check without emitting |
-| `npm run lint` | Lint with oxlint |
+| `npm run lint` | Lint with ESLint |
 
 ## Architecture
 
@@ -37,13 +45,16 @@ src/
     constants.ts   Board size, fleet definition, coordinate labels
     board.ts       Board creation, ship placement, shot resolution
     ai.ts          Opponent move selection
-    engine.ts      Turn state machine (humanFire / aiFire / createGame)
+    placement.ts   Manual fleet editing (move / rotate / remove a ship)
+    engine.ts      Turn state machine (createGame / startBattle / humanFire / aiFire)
   hooks/
-    useBattleship.ts  React binding: state, fireAt, restart, AI turn timer
+    useBattleship.ts  React binding: state, placement actions, fireAt, AI turn timer
   components/
     Board.tsx      Grid of cells with row/column labels
     Cell.tsx       Single memoised, accessible cell button
+    Explosion.tsx  CSS burst rendered on a fresh hit
     FleetStatus.tsx  Per-ship hit counters
+    PlacementControls.tsx  Rotate / randomize / start battle
     StatusPanel.tsx  Turn status, restart button, shot log
   App.tsx          Layout composition
 ```
