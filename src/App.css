@@ -1,0 +1,164 @@
+:root {
+  --ocean: #0b2545;
+  --ocean-light: #13315c;
+  --grid-line: #1d4e89;
+  --ship: #7b8a8b;
+  --hit: #e26d5c;
+  --miss: #8ecae6;
+  --text: #eef4ed;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top, #10375c 0%, #061021 70%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.app__header h1 {
+  margin: 0;
+  font-size: 2.25rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app__header p {
+  margin: 0.25rem 0 0;
+  opacity: 0.75;
+}
+
+.app__boards,
+.app__fleets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.board__title,
+.fleet__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.8;
+}
+
+.board__grid {
+  display: grid;
+  grid-template-columns: repeat(11, 2rem);
+  gap: 2px;
+}
+
+.board__label,
+.board__corner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.cell {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--grid-line);
+  border-radius: 3px;
+  background: var(--ocean-light);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.cell:not(:disabled):hover {
+  background: #1f4b8e;
+}
+
+.cell--ship {
+  background: var(--ship);
+}
+
+.cell--hit {
+  background: var(--hit);
+}
+
+.cell--miss {
+  background: var(--miss);
+}
+
+.cell__marker {
+  display: block;
+}
+
+.status {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.status__text {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.status__button {
+  align-self: flex-start;
+  background: var(--miss);
+  color: #04203a;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.status__log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 6rem;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.fleet__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 200px;
+}
+
+.fleet__ship {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fleet__ship--sunk {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
