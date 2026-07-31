@@ -11,6 +11,8 @@ export interface BoardPlacement {
   onDrop: (row: number, col: number) => void
 }
 
+export type BoardSide = 'friendly' | 'enemy'
+
 export interface BoardProps {
   title: string
   board: BoardModel
@@ -18,6 +20,8 @@ export interface BoardProps {
   interactive: boolean
   onFire?: (row: number, col: number) => void
   placement?: BoardPlacement
+  side?: BoardSide
+  subtitle?: string
 }
 
 export function Board({
@@ -27,10 +31,18 @@ export function Board({
   interactive,
   onFire,
   placement,
+  side = 'enemy',
+  subtitle,
 }: BoardProps) {
   return (
-    <section className="board" aria-label={title}>
-      <h2 className="board__title">{title}</h2>
+    <section className={`board board--${side}`} aria-label={title}>
+      <header className="board__header">
+        <span className="board__badge">
+          {side === 'enemy' ? 'Enemy' : 'You'}
+        </span>
+        <h2 className="board__title">{title}</h2>
+        {subtitle && <p className="board__subtitle">{subtitle}</p>}
+      </header>
       <div className="board__grid">
         <span className="board__corner" />
         {COLUMN_LABELS.slice(0, board.grid.length).map((label) => (

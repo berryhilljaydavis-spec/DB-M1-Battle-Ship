@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { Board } from './components/Board'
 import type { BoardPlacement } from './components/Board'
 import { FleetStatus } from './components/FleetStatus'
+import { OceanBackground } from './components/OceanBackground'
 import { PlacementControls } from './components/PlacementControls'
+import { VictorySalute } from './components/VictorySalute'
 import { StatusPanel } from './components/StatusPanel'
 import { useBattleship } from './hooks/useBattleship'
 import { findShipAt } from './game/placement'
@@ -64,8 +66,13 @@ export function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [isPlacing, rotateSelection])
 
+  const humanWon = state.phase === 'game-over' && state.winner === 'human'
+
   return (
     <main className="app">
+      <OceanBackground />
+      {humanWon && <VictorySalute />}
+
       <header className="app__header">
         <h1>Battleship</h1>
         <p>Sink the enemy fleet before it sinks yours.</p>
@@ -83,26 +90,40 @@ export function App() {
       )}
 
       <div className="app__boards">
-        <Board
-          title="Enemy waters"
-          board={state.aiBoard}
-          revealShips={state.phase === 'game-over'}
-          interactive={state.phase === 'human-turn'}
-          onFire={handleFire}
-        />
-        <Board
-          title="Your fleet"
-          board={state.humanBoard}
-          revealShips
-          interactive={isPlacing}
-          onFire={isPlacing ? handlePlace : undefined}
-          placement={placement}
-        />
-      </div>
+        <section className="side side--enemy">
+          <Board
+            title="Enemy waters"
+            side="enemy"
+            subtitle="Attack — click a square to fire"
+            board={state.aiBoard}
+            revealShips={state.phase === 'game-over'}
+            interactive={state.phase === 'human-turn'}
+            onFire={handleFire}
+          />
+          <FleetStatus title="Enemy fleet" side="enemy" board={state.aiBoard} />
+        </section>
 
-      <div className="app__fleets">
-        <FleetStatus title="Enemy fleet" board={state.aiBoard} />
-        <FleetStatus title="Your fleet" board={state.humanBoard} />
+        <section className="side side--friendly">
+          <Board
+            title="Your fleet"
+            side="friendly"
+            subtitle={
+              isPlacing
+                ? 'Defend — drag your ships, then start the battle'
+                : 'Defend — the AI fires here'
+            }
+            board={state.humanBoard}
+            revealShips
+            interactive={isPlacing}
+            onFire={isPlacing ? handlePlace : undefined}
+            placement={placement}
+          />
+          <FleetStatus
+            title="Your fleet"
+            side="friendly"
+            board={state.humanBoard}
+          />
+        </section>
       </div>
     </main>
   )
