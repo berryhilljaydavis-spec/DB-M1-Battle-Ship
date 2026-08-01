@@ -13,6 +13,7 @@ import { StatusPanel } from './components/StatusPanel'
 import { useBattleship } from './hooks/useBattleship'
 import { findShipAt } from './game/placement'
 import { useGameSounds } from './sound/useGameSounds'
+import { useMenuMusic } from './sound/useMenuMusic'
 import { useSoundPreference } from './sound/useSoundPreference'
 import './App.css'
 
@@ -35,6 +36,7 @@ export function App() {
   const isPlacing = state.phase === 'placement'
 
   useGameSounds(state)
+  useMenuMusic(inMenu && soundEnabled)
 
   const openMenu = useCallback(() => {
     restart()
