@@ -420,6 +420,7 @@ class SoundPlayer {
     this.fanfare(ctx, now + 0.25, notes, 0.16)
   }
 
+  /** Victory: a staggered salute of heavy guns, then the winning motif. */
   private victorySalute(ctx: AudioContext, now: number): void {
     const volley = [
       [0, 0.72],
@@ -562,6 +563,7 @@ class SoundPlayer {
     timbre.connect(gain).connect(destination)
   }
 
+  /** Low pedal tone holding under the march: slow swell, no attack. */
   private drone(
     ctx: AudioContext,
     start: number,
