@@ -101,7 +101,7 @@ class SoundPlayer {
       case 'miss':
         return this.splash(ctx, now)
       case 'victory':
-        return this.finale(ctx, now, [523.25, 659.25, 783.99, 1046.5])
+        return this.victorySalute(ctx, now)
       case 'defeat':
         return this.finale(ctx, now, [440, 349.23, 261.63, 196])
       case 'start':
@@ -151,6 +151,9 @@ class SoundPlayer {
     const music = ctx.createGain()
     music.gain.value = 0
     music.connect(master)
+    const musicReverbSend = ctx.createGain()
+    musicReverbSend.gain.value = 0.22
+    music.connect(musicReverbSend).connect(reverb)
 
     this.context = ctx
     this.master = master
@@ -276,28 +279,28 @@ class SoundPlayer {
   }
 
   /** Main gun firing: crack, muzzle blast, sub thump, rolling tail. */
-  private cannon(ctx: AudioContext, now: number): void {
+  private cannon(ctx: AudioContext, now: number, scale = 1): void {
     this.noise(ctx, {
       start: now,
       duration: 0.05,
-      peak: 0.85,
+      peak: 0.85 * scale,
       filterType: 'highpass',
       startFreq: 2200,
     })
     this.noise(ctx, {
       start: now,
       duration: 0.55,
-      peak: 0.7,
+      peak: 0.7 * scale,
       filterType: 'lowpass',
       startFreq: 1600,
       endFreq: 180,
     })
-    this.sub(ctx, now, 120, 48, 0.5, 0.85)
+    this.sub(ctx, now, 120, 48, 0.5, 0.85 * scale)
     // Rumble rolling away over the water.
     this.noise(ctx, {
       start: now + 0.12,
       duration: 1.2,
-      peak: 0.26,
+      peak: 0.26 * scale,
       filterType: 'lowpass',
       startFreq: 320,
       endFreq: 70,
@@ -417,6 +420,25 @@ class SoundPlayer {
     this.fanfare(ctx, now + 0.25, notes, 0.16)
   }
 
+  /** Victory: a staggered salute of heavy guns, then the winning motif. */
+  private victorySalute(ctx: AudioContext, now: number): void {
+    const volley = [
+      [0, 0.72],
+      [0.36, 0.62],
+      [0.73, 0.7],
+      [1.13, 0.58],
+      [1.56, 0.66],
+    ] as const
+    volley.forEach(([offset, scale], index) => {
+      if (index % 2 === 0) {
+        this.cannon(ctx, now + offset, scale)
+      } else {
+        this.detonation(ctx, now + offset, scale)
+      }
+    })
+    this.fanfare(ctx, now + 1.4, [523.25, 659.25, 783.99, 1046.5], 0.16)
+  }
+
   private blip(
     ctx: AudioContext,
     now: number,
@@ -474,16 +496,20 @@ class SoundPlayer {
         case 'bass':
           this.brass(ctx, at, note.freq, note.length * beat, bus, 0.6)
           break
+        case 'drone':
+          this.drone(ctx, at, note.freq, note.length * beat, bus)
+          break
         case 'kick':
-          this.sub(ctx, at, 115, 52, 0.24, 0.5, bus)
+          this.sub(ctx, at, 95, 38, 0.56, 0.65, bus)
           break
         case 'snare':
           this.noise(ctx, {
             start: at,
-            duration: 0.13,
-            peak: 0.22,
-            filterType: 'highpass',
-            startFreq: 1500,
+            duration: 0.09,
+            peak: 0.055,
+            filterType: 'lowpass',
+            startFreq: 650,
+            endFreq: 180,
             destination: bus,
           })
           break
@@ -507,22 +533,22 @@ class SoundPlayer {
     destination: AudioNode,
     level = 1,
   ): void {
-    const attack = 0.045
+    const attack = 0.24
     const gain = ctx.createGain()
     gain.gain.setValueAtTime(0.0001, start)
-    gain.gain.linearRampToValueAtTime(0.14 * level, start + attack)
-    gain.gain.setValueAtTime(0.12 * level, start + duration * 0.6)
+    gain.gain.linearRampToValueAtTime(0.11 * level, start + attack)
+    gain.gain.setValueAtTime(0.095 * level, start + duration * 0.6)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
 
     const timbre = ctx.createBiquadFilter()
     timbre.type = 'lowpass'
-    timbre.frequency.setValueAtTime(freq * 2, start)
-    timbre.frequency.linearRampToValueAtTime(freq * 6, start + attack)
+    timbre.frequency.setValueAtTime(Math.max(freq * 1.2, 180), start)
+    timbre.frequency.linearRampToValueAtTime(freq * 2.4, start + attack)
     timbre.frequency.exponentialRampToValueAtTime(
       Math.max(freq * 2, 200),
       start + duration,
     )
-    timbre.Q.value = 3
+    timbre.Q.value = 0.8
 
     for (const detune of [-7, 0, 7]) {
       const osc = ctx.createOscillator()
@@ -535,6 +561,36 @@ class SoundPlayer {
     }
 
     timbre.connect(gain).connect(destination)
+  }
+
+  /** Low pedal tone holding under the march: slow swell, no attack. */
+  private drone(
+    ctx: AudioContext,
+    start: number,
+    freq: number,
+    duration: number,
+    destination: AudioNode,
+  ): void {
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.setValueAtTime(260, start)
+    filter.Q.value = 0.55
+    const gain = ctx.createGain()
+    gain.gain.setValueAtTime(0.0001, start)
+    gain.gain.linearRampToValueAtTime(0.075, start + 0.65)
+    gain.gain.setValueAtTime(0.065, start + Math.max(0.66, duration - 0.7))
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+
+    for (const detune of [-6, 6]) {
+      const osc = ctx.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, start)
+      osc.detune.setValueAtTime(detune, start)
+      osc.connect(filter)
+      osc.start(start)
+      osc.stop(start + duration + 0.05)
+    }
+    filter.connect(gain).connect(destination)
   }
 }
 
