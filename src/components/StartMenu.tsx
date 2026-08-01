@@ -1,3 +1,5 @@
+import { GameEmblem } from './Insignia'
+
 export interface StartMenuProps {
   onStart: () => void
 }
@@ -6,6 +8,7 @@ export interface StartMenuProps {
 export function StartMenu({ onStart }: StartMenuProps) {
   return (
     <section className="menu" aria-label="Main menu">
+      <GameEmblem />
       <h1 className="menu__title">Battleship</h1>
       <p className="menu__tagline">Command your fleet. Sink theirs first.</p>
 

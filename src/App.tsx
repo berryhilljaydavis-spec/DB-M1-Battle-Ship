@@ -5,6 +5,7 @@ import { FleetDestruction } from './components/FleetDestruction'
 import { FleetStatus } from './components/FleetStatus'
 import { OceanCanvas } from './components/OceanCanvas'
 import { PlacementControls } from './components/PlacementControls'
+import { GameEmblem } from './components/Insignia'
 import { StartMenu } from './components/StartMenu'
 import { VictorySalute } from './components/VictorySalute'
 import { StatusPanel } from './components/StatusPanel'
@@ -98,8 +99,11 @@ export function App() {
       {humanWon && <VictorySalute />}
 
       <header className="app__header">
-        <h1>Battleship</h1>
-        <p>Sink the enemy fleet before it sinks yours.</p>
+        <GameEmblem />
+        <div>
+          <h1>Battleship</h1>
+          <p>Sink the enemy fleet before it sinks yours.</p>
+        </div>
       </header>
 
       <StatusPanel state={state} onRestart={restart} onMenu={openMenu} />

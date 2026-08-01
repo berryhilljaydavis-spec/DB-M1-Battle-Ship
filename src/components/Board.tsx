@@ -1,6 +1,7 @@
 import { COLUMN_LABELS } from '../game/constants'
 import type { Board as BoardModel, Coord } from '../game/types'
 import { Cell } from './Cell'
+import { FleetCrest } from './Insignia'
 import { isShotAllowed } from '../game/board'
 
 export interface BoardPlacement {
@@ -37,6 +38,7 @@ export function Board({
   return (
     <section className={`board board--${side}`} aria-label={title}>
       <header className="board__header">
+        <FleetCrest side={side} />
         <span className="board__badge">
           {side === 'enemy' ? 'Enemy' : 'You'}
         </span>
