@@ -6,6 +6,10 @@ every game and the AI fires at uniformly random cells it has not tried yet.
 
 ## Playing
 
+The app opens on a title screen; `Deploy fleet` starts a game and `Main menu` returns
+to it. Your fleet is on the left, enemy waters on the right, colour-coded green and
+red.
+
 Each game opens in a placement phase: your fleet starts at random positions and you
 can drag a ship onto another square, or click it and click its new position. `Rotate
 (R)` flips the selected ship, `Randomize` re-rolls the whole fleet, and `Start battle`
@@ -47,12 +51,16 @@ src/
     ai.ts          Opponent move selection
     placement.ts   Manual fleet editing (move / rotate / remove a ship)
     engine.ts      Turn state machine (createGame / startBattle / humanFire / aiFire)
+  ocean/
+    scene.ts       Canvas painter for the animated ocean (sky, swell, glitter, ships)
   hooks/
     useBattleship.ts  React binding: state, placement actions, fireAt, AI turn timer
   components/
     Board.tsx      Grid of cells with row/column labels
     Cell.tsx       Single memoised, accessible cell button
     Explosion.tsx  CSS burst rendered on a fresh hit
+    OceanCanvas.tsx  Canvas element + resize/animation loop for the backdrop
+    StartMenu.tsx  Title screen
     FleetStatus.tsx  Per-ship hit counters
     PlacementControls.tsx  Rotate / randomize / start battle
     StatusPanel.tsx  Turn status, restart button, shot log

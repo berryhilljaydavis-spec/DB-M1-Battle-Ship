@@ -20,13 +20,40 @@ function shipCells(boardName: string) {
     .filter((cell) => cell.getAttribute('aria-label')?.endsWith('ship'))
 }
 
+/** Renders the app and leaves the title screen so the fleet is placeable. */
+async function renderGame() {
+  render(<App />)
+  await userEvent.click(screen.getByRole('button', { name: 'Deploy fleet' }))
+}
+
 async function startBattle() {
   await userEvent.click(screen.getByRole('button', { name: 'Start battle' }))
 }
 
+describe('start menu', () => {
+  it('shows the menu first and enters placement on deploy', async () => {
+    render(<App />)
+    expect(screen.queryByLabelText('Enemy waters')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Deploy fleet' }))
+    expect(screen.getByLabelText('Enemy waters')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Start battle' }),
+    ).toBeInTheDocument()
+  })
+
+  it('returns to the menu from the game', async () => {
+    await renderGame()
+    await userEvent.click(screen.getByRole('button', { name: 'Main menu' }))
+
+    expect(screen.getByRole('button', { name: 'Deploy fleet' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Enemy waters')).not.toBeInTheDocument()
+  })
+})
+
 describe('App', () => {
   it('renders both boards and reveals only the human fleet', async () => {
-    render(<App />)
+    await renderGame()
     await startBattle()
     const enemy = within(screen.getByLabelText('Enemy waters'))
 
@@ -36,7 +63,7 @@ describe('App', () => {
   })
 
   it('resolves a human shot and then an AI shot', async () => {
-    render(<App />)
+    await renderGame()
     await startBattle()
     const enemy = within(screen.getByLabelText('Enemy waters'))
 
@@ -50,7 +77,7 @@ describe('App', () => {
   })
 
   it('starts a fresh game when restarting', async () => {
-    render(<App />)
+    await renderGame()
     await startBattle()
     const enemy = within(screen.getByLabelText('Enemy waters'))
     await userEvent.click(enemy.getAllByRole('button')[0])
@@ -67,14 +94,14 @@ describe('App', () => {
 
 describe('placement phase', () => {
   it('blocks firing until the battle starts', async () => {
-    render(<App />)
+    await renderGame()
     const enemy = within(screen.getByLabelText('Enemy waters'))
     await userEvent.click(enemy.getAllByRole('button')[0])
     expect(markedCells('Enemy waters')).toHaveLength(0)
   })
 
   it('moves the selected ship to a free square', async () => {
-    render(<App />)
+    await renderGame()
     const own = within(screen.getByLabelText('Your fleet'))
     const layout = () =>
       shipCells('Your fleet')
@@ -98,7 +125,7 @@ describe('placement phase', () => {
   })
 
   it('keeps the fleet intact when randomizing and rotating', async () => {
-    render(<App />)
+    await renderGame()
     await userEvent.click(screen.getByRole('button', { name: 'Randomize' }))
     expect(shipCells('Your fleet')).toHaveLength(SHIP_CELLS)
 

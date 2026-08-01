@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Board } from './components/Board'
 import type { BoardPlacement } from './components/Board'
 import { FleetStatus } from './components/FleetStatus'
-import { OceanBackground } from './components/OceanBackground'
+import { OceanCanvas } from './components/OceanCanvas'
 import { PlacementControls } from './components/PlacementControls'
+import { StartMenu } from './components/StartMenu'
 import { VictorySalute } from './components/VictorySalute'
 import { StatusPanel } from './components/StatusPanel'
 import { useBattleship } from './hooks/useBattleship'
@@ -23,7 +24,18 @@ export function App() {
     restart,
   } = useBattleship()
 
+  const [inMenu, setInMenu] = useState(true)
   const isPlacing = state.phase === 'placement'
+
+  const openMenu = useCallback(() => {
+    restart()
+    setInMenu(true)
+  }, [restart])
+
+  const leaveMenu = useCallback(() => {
+    restart()
+    setInMenu(false)
+  }, [restart])
 
   const handleFire = useCallback(
     (row: number, col: number) => fireAt({ row, col }),
@@ -68,9 +80,18 @@ export function App() {
 
   const humanWon = state.phase === 'game-over' && state.winner === 'human'
 
+  if (inMenu) {
+    return (
+      <main className="app app--menu">
+        <OceanCanvas />
+        <StartMenu onStart={leaveMenu} />
+      </main>
+    )
+  }
+
   return (
     <main className="app">
-      <OceanBackground />
+      <OceanCanvas />
       {humanWon && <VictorySalute />}
 
       <header className="app__header">
@@ -78,7 +99,7 @@ export function App() {
         <p>Sink the enemy fleet before it sinks yours.</p>
       </header>
 
-      <StatusPanel state={state} onRestart={restart} />
+      <StatusPanel state={state} onRestart={restart} onMenu={openMenu} />
 
       {isPlacing && (
         <PlacementControls
@@ -90,19 +111,6 @@ export function App() {
       )}
 
       <div className="app__boards">
-        <section className="side side--enemy">
-          <Board
-            title="Enemy waters"
-            side="enemy"
-            subtitle="Attack — click a square to fire"
-            board={state.aiBoard}
-            revealShips={state.phase === 'game-over'}
-            interactive={state.phase === 'human-turn'}
-            onFire={handleFire}
-          />
-          <FleetStatus title="Enemy fleet" side="enemy" board={state.aiBoard} />
-        </section>
-
         <section className="side side--friendly">
           <Board
             title="Your fleet"
@@ -123,6 +131,19 @@ export function App() {
             side="friendly"
             board={state.humanBoard}
           />
+        </section>
+
+        <section className="side side--enemy">
+          <Board
+            title="Enemy waters"
+            side="enemy"
+            subtitle="Attack — click a square to fire"
+            board={state.aiBoard}
+            revealShips={state.phase === 'game-over'}
+            interactive={state.phase === 'human-turn'}
+            onFire={handleFire}
+          />
+          <FleetStatus title="Enemy fleet" side="enemy" board={state.aiBoard} />
         </section>
       </div>
     </main>

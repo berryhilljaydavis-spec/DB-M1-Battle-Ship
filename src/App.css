@@ -478,257 +478,16 @@ body {
 }
 
 /* ---------------------------------------------------------------- *
- * Open-ocean backdrop
+ * Open-ocean backdrop (painted by src/ocean/scene.ts)
  * ---------------------------------------------------------------- */
 
-.ocean {
+.ocean-canvas {
   position: fixed;
   inset: 0;
   z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.ocean__sky {
-  position: absolute;
-  inset: 0 0 45% 0;
-  background: linear-gradient(
-    180deg,
-    #0a1c38 0%,
-    #14406e 45%,
-    #2d6f96 80%,
-    #6aa7bd 100%
-  );
-}
-
-.ocean__sun {
-  position: absolute;
-  top: 12%;
-  left: 68%;
-  width: 12rem;
-  height: 12rem;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 233, 176, 0.55) 0%,
-    rgba(255, 200, 120, 0.18) 45%,
-    rgba(255, 200, 120, 0) 70%
-  );
-}
-
-.ocean__clouds {
-  position: absolute;
-  top: 0;
-  left: -50%;
-  width: 200%;
-  height: 55%;
-  background-repeat: repeat-x;
-  opacity: 0.45;
-}
-
-.ocean__clouds--far {
-  background-image:
-    radial-gradient(
-      70px 22px at 12% 32%,
-      rgba(255, 255, 255, 0.55),
-      transparent 70%
-    ),
-    radial-gradient(
-      110px 28px at 34% 22%,
-      rgba(255, 255, 255, 0.4),
-      transparent 70%
-    ),
-    radial-gradient(
-      90px 24px at 61% 40%,
-      rgba(255, 255, 255, 0.35),
-      transparent 70%
-    ),
-    radial-gradient(
-      130px 30px at 84% 26%,
-      rgba(255, 255, 255, 0.32),
-      transparent 70%
-    );
-  animation: cloud-drift 260s linear infinite;
-}
-
-.ocean__clouds--near {
-  opacity: 0.3;
-  background-image:
-    radial-gradient(
-      150px 34px at 20% 58%,
-      rgba(255, 255, 255, 0.4),
-      transparent 70%
-    ),
-    radial-gradient(
-      180px 40px at 70% 66%,
-      rgba(255, 255, 255, 0.33),
-      transparent 70%
-    );
-  animation: cloud-drift 150s linear infinite reverse;
-}
-
-@keyframes cloud-drift {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(25%);
-  }
-}
-
-.ocean__horizon {
-  position: absolute;
-  top: 46%;
-  left: 0;
-  right: 0;
-  height: 6%;
-  transform: translateY(-100%);
-}
-
-.horizon-ship {
-  position: absolute;
-  width: 92px;
-  height: 26px;
-  opacity: 0.72;
-  transform-origin: bottom center;
-  animation-name: horizon-sail;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-
-.horizon-ship--flipped {
-  animation-direction: reverse;
-}
-
-.horizon-ship > * {
-  position: absolute;
-  background: #071a2c;
+  width: 100%;
+  height: 100%;
   display: block;
-}
-
-.horizon-ship__hull {
-  bottom: 0;
-  left: 0;
-  width: 92px;
-  height: 8px;
-  border-radius: 0 0 14px 6px;
-  clip-path: polygon(0 0, 100% 0, 88% 100%, 8% 100%);
-}
-
-.horizon-ship__tower {
-  bottom: 8px;
-  left: 38px;
-  width: 20px;
-  height: 10px;
-  border-radius: 2px 4px 0 0;
-}
-
-.horizon-ship__mast {
-  bottom: 18px;
-  left: 46px;
-  width: 3px;
-  height: 8px;
-}
-
-.horizon-ship__wake {
-  bottom: 0;
-  left: -18px;
-  width: 26px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
-  filter: blur(1px);
-}
-
-@keyframes horizon-sail {
-  from {
-    translate: -120vw 0;
-  }
-  to {
-    translate: 120vw 0;
-  }
-}
-
-.ocean__sea {
-  position: absolute;
-  inset: 46% 0 0 0;
-  background: linear-gradient(
-    180deg,
-    #2a6f92 0%,
-    #14476e 22%,
-    #0a2a4d 60%,
-    #05152a 100%
-  );
-  overflow: hidden;
-}
-
-.ocean__glimmer {
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 30%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 232, 180, 0.28) 0%,
-    rgba(255, 232, 180, 0) 100%
-  );
-  mix-blend-mode: screen;
-  animation: glimmer-pulse 9s ease-in-out infinite;
-}
-
-@keyframes glimmer-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 0.9;
-  }
-}
-
-.ocean__wave {
-  position: absolute;
-  left: -50%;
-  width: 200%;
-  height: 60px;
-  background-repeat: repeat-x;
-  background-size: 220px 60px;
-  opacity: 0.35;
-  background-image: radial-gradient(
-    110px 26px at 50% 0,
-    rgba(255, 255, 255, 0.5),
-    rgba(255, 255, 255, 0) 70%
-  );
-  animation: wave-roll linear infinite;
-}
-
-.ocean__wave--back {
-  top: 6%;
-  opacity: 0.2;
-  animation-duration: 34s;
-}
-
-.ocean__wave--mid {
-  top: 22%;
-  opacity: 0.16;
-  background-size: 320px 60px;
-  animation-duration: 24s;
-  animation-direction: reverse;
-}
-
-.ocean__wave--front {
-  top: 48%;
-  opacity: 0.12;
-  background-size: 420px 70px;
-  animation-duration: 18s;
-}
-
-@keyframes wave-roll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(25%);
-  }
 }
 
 /* ---------------------------------------------------------------- *
@@ -935,10 +694,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ocean__clouds,
-  .ocean__wave,
-  .ocean__glimmer,
-  .horizon-ship,
   .gunship,
   .gunship__body,
   .gunship__muzzle,
@@ -950,4 +705,84 @@ body {
   .salute {
     display: none;
   }
+}
+
+/* ---------------------------------------------------------------- *
+ * Start menu
+ * ---------------------------------------------------------------- */
+
+.app--menu {
+  min-height: 100vh;
+  justify-content: center;
+  align-items: center;
+}
+
+.menu {
+  width: min(34rem, 100%);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  border-radius: 16px;
+  border: 1px solid rgba(160, 210, 235, 0.35);
+  background: linear-gradient(
+    180deg,
+    rgba(10, 32, 58, 0.82) 0%,
+    rgba(3, 13, 28, 0.9) 100%
+  );
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.menu__title {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 3.75rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+}
+
+.menu__tagline {
+  margin: 0.35rem 0 1.75rem;
+  opacity: 0.8;
+  letter-spacing: 0.04em;
+}
+
+.menu__play {
+  padding: 0.85rem 2.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #04203a;
+  background: linear-gradient(180deg, #ffe08a 0%, #ffc23d 100%);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(255, 194, 61, 0.3);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.menu__play:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(255, 194, 61, 0.4);
+}
+
+.menu__rules {
+  margin: 2rem 0 0;
+  padding-left: 1.2rem;
+  text-align: left;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  opacity: 0.75;
+}
+
+.status__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.status__button--ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.35);
 }
