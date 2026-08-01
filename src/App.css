@@ -1,0 +1,1045 @@
+:root {
+  --ocean: #0b2545;
+  --ocean-light: #13315c;
+  --grid-line: #1d4e89;
+  --ship: #7b8a8b;
+  --hit: #e26d5c;
+  --miss: #8ecae6;
+  --text: #eef4ed;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at top, #10375c 0%, #061021 70%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app {
+  position: relative;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.app__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app__header .emblem {
+  width: 3.6rem;
+  height: 3.6rem;
+  margin: 0;
+  flex: none;
+}
+
+.app__header h1 {
+  margin: 0;
+  font-size: 2.25rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
+.app__header p {
+  margin: 0.25rem 0 0;
+  opacity: 0.85;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.app__boards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.side {
+  flex: 1 1 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 2px solid var(--side-line);
+  background: linear-gradient(
+    180deg,
+    var(--side-tint) 0%,
+    rgba(3, 15, 32, 0.72) 100%
+  );
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.side--enemy {
+  --side-accent: #ff8360;
+  --side-line: rgba(226, 109, 92, 0.55);
+  --side-tint: rgba(120, 26, 20, 0.35);
+}
+
+.side--friendly {
+  --side-accent: #7ee0b8;
+  --side-line: rgba(126, 224, 184, 0.5);
+  --side-tint: rgba(12, 74, 74, 0.35);
+}
+
+.board__header {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0.15rem 0.6rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.crest {
+  grid-row: span 2;
+  width: 2.1rem;
+  height: 2.3rem;
+  color: var(--side-accent);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+.board__badge {
+  grid-row: span 2;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #05121f;
+  background: var(--side-accent);
+}
+
+.board__subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.board--enemy .board__title,
+.board--friendly .board__title {
+  margin: 0;
+  opacity: 1;
+  color: var(--side-accent);
+}
+
+.fleet--enemy .fleet__title,
+.fleet--friendly .fleet__title {
+  color: var(--side-accent);
+  opacity: 1;
+}
+
+.board__title,
+.fleet__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.8;
+}
+
+.board__grid {
+  display: grid;
+  grid-template-columns: repeat(11, 2rem);
+  gap: 2px;
+}
+
+.board__label,
+.board__corner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.cell-slot {
+  position: relative;
+  display: block;
+  width: 2rem;
+  height: 2rem;
+}
+
+.cell {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 1px solid var(--grid-line);
+  border-radius: 3px;
+  background: var(--ocean-light);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.cell:not(:disabled):not(.cell--ship):not(.cell--selected):hover {
+  background: #1f4b8e;
+}
+
+.cell--ship {
+  background: var(--ship);
+}
+
+.cell--hit {
+  background: var(--hit);
+}
+
+.cell--miss {
+  background: var(--miss);
+}
+
+.cell-slot--blasting {
+  z-index: 2;
+}
+
+.cell-slot--blasting .cell {
+  animation: cell-jolt 260ms ease-out;
+}
+
+@keyframes cell-jolt {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  15% {
+    transform: translate(1.5px, -1px);
+  }
+  35% {
+    transform: translate(-1.5px, 1px);
+  }
+  60% {
+    transform: translate(1px, 1px);
+  }
+  80% {
+    transform: translate(-0.5px, -0.5px);
+  }
+}
+
+.blast {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: blast-life 900ms linear forwards;
+}
+
+.blast > * {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes blast-life {
+  to {
+    opacity: 1;
+  }
+}
+
+.blast__flash {
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  box-shadow: 0 0 14px 8px rgba(255, 245, 210, 0.9);
+  animation: blast-flash 160ms ease-out forwards;
+}
+
+@keyframes blast-flash {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.6);
+    opacity: 0;
+  }
+}
+
+.blast__fireball {
+  width: 30px;
+  height: 30px;
+  background: radial-gradient(
+    circle,
+    #fff6d5 0%,
+    #ffd25a 28%,
+    #ff8c1a 52%,
+    #e03a12 74%,
+    rgba(120, 20, 8, 0) 100%
+  );
+  animation: blast-fireball 420ms cubic-bezier(0.15, 0.8, 0.35, 1) forwards;
+}
+
+@keyframes blast-fireball {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 1;
+  }
+  55% {
+    transform: translate(-50%, -55%) scale(1.15);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -70%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+.blast__shockwave {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 236, 190, 0.85);
+  animation: blast-shockwave 380ms ease-out forwards;
+}
+
+@keyframes blast-shockwave {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.8);
+    opacity: 0;
+    border-width: 0.5px;
+  }
+}
+
+.blast__smoke {
+  width: 22px;
+  height: 22px;
+  background: radial-gradient(
+    circle,
+    rgba(70, 60, 55, 0.75) 0%,
+    rgba(40, 35, 33, 0.5) 55%,
+    rgba(30, 26, 24, 0) 100%
+  );
+  animation: blast-smoke 880ms ease-out forwards;
+}
+
+@keyframes blast-smoke {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(-50%, -145%) scale(1.9);
+    opacity: 0;
+  }
+}
+
+.blast__spark {
+  width: 3.5px;
+  height: 3.5px;
+  background: #ffe08a;
+  box-shadow: 0 0 4px 1px rgba(255, 180, 60, 0.9);
+  animation: blast-spark 520ms cubic-bezier(0.2, 0.7, 0.3, 1) var(--delay, 0ms)
+    forwards;
+}
+
+@keyframes blast-spark {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))
+      scale(0.2);
+    opacity: 0;
+  }
+}
+
+.blast__debris {
+  width: 5px;
+  height: 2px;
+  border-radius: 1px;
+  background: #8a7c6e;
+  animation: blast-debris 640ms cubic-bezier(0.25, 0.5, 0.5, 1) forwards;
+}
+
+@keyframes blast-debris {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 12px))
+      rotate(var(--spin, 180deg));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-slot--blasting .cell {
+    animation: none;
+  }
+
+  .blast {
+    display: none;
+  }
+}
+
+.status {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.status__text {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.status__button {
+  align-self: flex-start;
+  background: var(--miss);
+  color: #04203a;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.status__button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.status__button--primary {
+  background: #ffd25a;
+}
+
+.placement {
+  background: rgba(255, 210, 90, 0.08);
+  border: 1px solid rgba(255, 210, 90, 0.35);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.placement__hint {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.placement__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cell--grabbable {
+  cursor: grab;
+}
+
+.cell--selected {
+  background: #ffd25a;
+  box-shadow: 0 0 0 2px #fff6d5 inset;
+}
+
+.cell--ship:not(:disabled):hover {
+  background: #b6bfc4;
+}
+
+.cell--selected:not(:disabled):hover {
+  background: #ffe08a;
+}
+
+.status__log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: 6rem;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.fleet__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 200px;
+}
+
+.fleet__ship {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fleet__ship--sunk {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+/* ---------------------------------------------------------------- *
+ * Open-ocean backdrop (painted by src/ocean/scene.ts)
+ * ---------------------------------------------------------------- */
+
+.ocean-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------------------------------------------------------------- *
+ * Victory salute: gunship flyover firing into the sky
+ * ---------------------------------------------------------------- */
+
+.salute {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.gunship {
+  position: absolute;
+  left: 0;
+  animation-name: gunship-fly;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.gunship__body {
+  position: relative;
+  width: 190px;
+  height: 54px;
+  transform-origin: center;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+  animation: gunship-bob 3.4s ease-in-out infinite;
+}
+
+.gunship__body > * {
+  position: absolute;
+  display: block;
+  background: #16232f;
+}
+
+.gunship__hull {
+  bottom: 0;
+  left: 0;
+  width: 190px;
+  height: 18px;
+  background: linear-gradient(180deg, #2b3d4d 0%, #101a24 100%);
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 6% 100%);
+  border-radius: 0 0 10px 4px;
+}
+
+.gunship__deck {
+  bottom: 18px;
+  left: 26px;
+  width: 130px;
+  height: 8px;
+  background: #24384a;
+  border-radius: 2px;
+}
+
+.gunship__bridge {
+  bottom: 26px;
+  left: 74px;
+  width: 34px;
+  height: 20px;
+  background: #2e4a60;
+  border-radius: 4px 4px 0 0;
+}
+
+.gunship__barrel {
+  bottom: 36px;
+  left: 104px;
+  width: 54px;
+  height: 5px;
+  background: #3b5568;
+  border-radius: 2px;
+  transform-origin: left center;
+  rotate: -32deg;
+}
+
+.gunship__muzzle {
+  bottom: 58px;
+  left: 148px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff7d6 0%,
+    #ffb347 45%,
+    rgba(255, 120, 40, 0) 72%
+  );
+  animation: muzzle-fire 1.6s ease-out infinite;
+}
+
+@keyframes gunship-fly {
+  from {
+    transform: translateX(-260px);
+  }
+  to {
+    transform: translateX(105vw);
+  }
+}
+
+@keyframes gunship-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@keyframes muzzle-fire {
+  0%,
+  62%,
+  100% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  66% {
+    opacity: 1;
+    scale: 1.5;
+  }
+  78% {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+.salute__shot {
+  position: absolute;
+  bottom: 12%;
+  mix-blend-mode: screen;
+  width: 4px;
+  height: 4px;
+  animation: shot-rise 2.8s ease-out infinite;
+}
+
+.salute__tracer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  height: 34px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 245, 200, 0.95) 0%,
+    rgba(255, 170, 60, 0.15) 100%
+  );
+  box-shadow: 0 0 10px rgba(255, 200, 110, 0.8);
+}
+
+.salute__burst {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    circle,
+    #fffdf2 0%,
+    #ffd166 35%,
+    rgba(255, 120, 40, 0) 70%
+  );
+  animation: shot-burst 2.8s ease-out infinite;
+  animation-delay: inherit;
+}
+
+/* Expanding flak ring around each airburst. */
+.salute__burst::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 226, 160, 0.75);
+  animation: shot-ring 2.8s ease-out infinite;
+  animation-delay: inherit;
+}
+
+@keyframes shot-rise {
+  0% {
+    transform: translate(0, 0) scaleY(0.4);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  72% {
+    transform: translate(var(--drift, 0), -70vh) scaleY(1);
+    opacity: 1;
+  }
+  80%,
+  100% {
+    transform: translate(var(--drift, 0), -74vh) scaleY(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes shot-burst {
+  0%,
+  70% {
+    opacity: 0;
+    scale: 0.2;
+  }
+  76% {
+    opacity: 1;
+    scale: 6;
+  }
+  92%,
+  100% {
+    opacity: 0;
+    scale: 9;
+  }
+}
+
+@keyframes shot-ring {
+  0%,
+  72% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  78% {
+    opacity: 0.9;
+  }
+  95%,
+  100% {
+    opacity: 0;
+    transform: scale(4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gunship,
+  .gunship__body,
+  .gunship__muzzle,
+  .salute__shot,
+  .salute__burst,
+  .salute__burst::after,
+  .destruction__blast,
+  .destruction__smoke,
+  .destruction__fire,
+  .side--destroyed {
+    animation: none;
+  }
+
+  .salute,
+  .destruction {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * Start menu
+ * ---------------------------------------------------------------- */
+
+.app--menu {
+  min-height: 100vh;
+  justify-content: center;
+  align-items: center;
+}
+
+.menu {
+  width: min(34rem, 100%);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  border-radius: 16px;
+  border: 1px solid rgba(160, 210, 235, 0.35);
+  background: linear-gradient(
+    180deg,
+    rgba(10, 32, 58, 0.82) 0%,
+    rgba(3, 13, 28, 0.9) 100%
+  );
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.emblem {
+  width: 7.5rem;
+  height: 7.5rem;
+  margin-bottom: 0.75rem;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.55));
+}
+
+.menu__title {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 3.75rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+}
+
+.menu__tagline {
+  margin: 0.35rem 0 1.75rem;
+  opacity: 0.8;
+  letter-spacing: 0.04em;
+}
+
+.menu__play {
+  padding: 0.85rem 2.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #04203a;
+  background: linear-gradient(180deg, #ffe08a 0%, #ffc23d 100%);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(255, 194, 61, 0.3);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.menu__play:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(255, 194, 61, 0.4);
+}
+
+.menu__rules {
+  margin: 2rem 0 0;
+  padding-left: 1.2rem;
+  text-align: left;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  opacity: 0.75;
+}
+
+.status__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.status__button--ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* ---------------------------------------------------------------- *
+ * Losing fleet destruction
+ * ---------------------------------------------------------------- */
+
+.side {
+  position: relative;
+}
+
+.side--destroyed {
+  animation: hull-shake 260ms ease-in-out infinite;
+  border-color: rgba(255, 138, 74, 0.85);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    inset 0 0 70px rgba(255, 96, 32, 0.35);
+}
+
+.destruction {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+/* Burning glow that pulses across the wrecked board. */
+.destruction__fire {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 30% 70%,
+      rgba(255, 138, 44, 0.5) 0%,
+      rgba(255, 80, 20, 0) 55%
+    ),
+    radial-gradient(
+      ellipse at 72% 45%,
+      rgba(255, 176, 64, 0.45) 0%,
+      rgba(190, 40, 10, 0) 60%
+    );
+  animation: fire-flicker 900ms ease-in-out infinite alternate;
+}
+
+.destruction__blast {
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #ffffff 0%,
+    #ffe9a8 18%,
+    #ff9c2e 42%,
+    rgba(214, 52, 12, 0.6) 65%,
+    rgba(90, 20, 0, 0) 78%
+  );
+  filter: blur(1.6px);
+  animation: board-blast 3.2s cubic-bezier(0.18, 0.9, 0.32, 1) infinite;
+}
+
+/* Glowing debris thrown clear of the fireball. */
+.destruction__blast::before {
+  content: '';
+  position: absolute;
+  inset: 42%;
+  border-radius: 50%;
+  background: #fff3d0;
+  box-shadow:
+    20px -28px 0 -1px #ffcf7a,
+    -26px -15px 0 -2px #ffb347,
+    32px 13px 0 -1px #ff9d3d,
+    -19px 24px 0 -2px #ffd08a,
+    5px -37px 0 -2px #fff0c4,
+    -36px 5px 0 -1px #ff8c2e,
+    12px 30px 0 -2px #ffbe6b;
+  animation: board-debris 3.2s ease-out infinite;
+  animation-delay: inherit;
+}
+
+/* Shockwave ring travelling out of each blast. */
+.destruction__blast::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 226, 178, 0.7);
+  animation: board-shockwave 3.2s ease-out infinite;
+  animation-delay: inherit;
+}
+
+.destruction__smoke {
+  position: absolute;
+  bottom: 8%;
+  width: 130px;
+  height: 130px;
+  margin-left: -65px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(72, 66, 62, 0.75) 0%,
+    rgba(46, 42, 40, 0.35) 45%,
+    rgba(30, 28, 26, 0) 72%
+  );
+  animation: board-smoke 4.4s ease-out infinite;
+}
+
+@keyframes hull-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-2px, 1px);
+  }
+  50% {
+    transform: translate(2px, -1px);
+  }
+  75% {
+    transform: translate(-1px, -2px);
+  }
+}
+
+@keyframes fire-flicker {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes board-blast {
+  0% {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+  6% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  22% {
+    opacity: 0.85;
+    transform: scale(1.35);
+  }
+  45%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes board-debris {
+  0% {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+  8% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes board-shockwave {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  8% {
+    opacity: 0.9;
+  }
+  40%,
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+@keyframes board-smoke {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4);
+  }
+  15% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-260px) scale(1.9);
+  }
+}
