@@ -1,4 +1,5 @@
 import type { SoundName } from './events'
+import { MARCH_BPM, MARCH_LOOP_BEATS, marchNotes } from './march'
 
 type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle'
 
@@ -25,6 +26,25 @@ function resolveAudioContext(): typeof AudioContext | null {
   )
 }
 
+/** Decaying noise burst used as a reverb impulse: open air, no repeats. */
+function impulseResponse(ctx: BaseAudioContext, seconds: number): AudioBuffer {
+  const frames = Math.floor(ctx.sampleRate * seconds)
+  const buffer = ctx.createBuffer(2, frames, ctx.sampleRate)
+  for (let channel = 0; channel < 2; channel++) {
+    const data = buffer.getChannelData(channel)
+    for (let i = 0; i < frames; i++) {
+      const decay = Math.pow(1 - i / frames, 2.4)
+      data[i] = (Math.random() * 2 - 1) * decay
+    }
+  }
+  return buffer
+}
+
+/** Shortest gap between two plays of the same effect, in seconds. */
+const RETRIGGER_GAP = 0.07
+/** Effects allowed to overlap before new ones are dropped. */
+const MAX_VOICES = 4
+
 /** Soft-clipping curve so heavy layers saturate instead of digitally clipping. */
 function saturationCurve(): Float32Array<ArrayBuffer> {
   const samples = 1024
@@ -46,11 +66,17 @@ function saturationCurve(): Float32Array<ArrayBuffer> {
 class SoundPlayer {
   private context: AudioContext | null = null
   private master: GainNode | null = null
-  private echo: GainNode | null = null
+  private effects: GainNode | null = null
+  private reverb: GainNode | null = null
+  private music: GainNode | null = null
   private muted = false
+  private lastPlayed = new Map<SoundName, number>()
+  private activeUntil: number[] = []
+  private musicTimer: ReturnType<typeof setTimeout> | null = null
 
   setMuted(muted: boolean): void {
     this.muted = muted
+    if (muted) this.stopMusic()
   }
 
   isMuted(): boolean {
@@ -64,6 +90,7 @@ class SoundPlayer {
     if (ctx.state === 'suspended') void ctx.resume()
 
     const now = ctx.currentTime
+    if (!this.claimVoice(name, now)) return
     switch (name) {
       case 'fire':
         return this.cannon(ctx, now)
@@ -108,28 +135,58 @@ class SoundPlayer {
 
     master.connect(shaper).connect(compressor).connect(ctx.destination)
 
-    // Echo send: distant reflections that make blasts roll across open water.
-    const echo = ctx.createGain()
-    echo.gain.value = 0.45
-    const delay = ctx.createDelay(1)
-    delay.delayTime.value = 0.23
-    const feedback = ctx.createGain()
-    feedback.gain.value = 0.45
-    const damp = ctx.createBiquadFilter()
-    damp.type = 'lowpass'
-    damp.frequency.value = 900
-    echo.connect(delay)
-    delay.connect(damp).connect(feedback).connect(delay)
-    damp.connect(master)
+    // Effects bus, ducked while several blasts overlap.
+    const effects = ctx.createGain()
+    effects.gain.value = 1
+    effects.connect(master)
+
+    // Open-air tail. A convolved noise burst decays smoothly, unlike a
+    // feedback delay, which repeats the blast and sounds like a bouncing ball.
+    const reverb = ctx.createGain()
+    reverb.gain.value = 0.5
+    const convolver = ctx.createConvolver()
+    convolver.buffer = impulseResponse(ctx, 1.9)
+    reverb.connect(convolver).connect(master)
+
+    const music = ctx.createGain()
+    music.gain.value = 0
+    music.connect(master)
 
     this.context = ctx
     this.master = master
-    this.echo = echo
+    this.effects = effects
+    this.reverb = reverb
+    this.music = music
     return ctx
   }
 
+  /**
+   * Rate-limits effects so rapid fire cannot stack into a wall of noise:
+   * identical sounds retrigger at most every `RETRIGGER_GAP`, no more than
+   * `MAX_VOICES` overlap, and the effects bus ducks as the count rises.
+   */
+  private claimVoice(name: SoundName, now: number): boolean {
+    const last = this.lastPlayed.get(name)
+    if (last !== undefined && now - last < RETRIGGER_GAP) return false
+    this.lastPlayed.set(name, now)
+
+    this.activeUntil = this.activeUntil.filter((end) => end > now)
+    if (this.activeUntil.length >= MAX_VOICES) return false
+    this.activeUntil.push(now + 1.2)
+
+    if (this.effects) {
+      const duck = 1 / Math.sqrt(this.activeUntil.length)
+      this.effects.gain.cancelScheduledValues(now)
+      this.effects.gain.setTargetAtTime(duck, now, 0.05)
+      this.effects.gain.setTargetAtTime(1, now + 0.9, 0.35)
+    }
+    return true
+  }
+
   private out(): AudioNode {
-    return this.master ?? (this.context as AudioContext).destination
+    return (
+      this.effects ?? this.master ?? (this.context as AudioContext).destination
+    )
   }
 
   private tone(
@@ -182,7 +239,9 @@ class SoundPlayer {
 
     source.connect(filter).connect(gain)
     gain.connect(options.destination ?? this.out())
-    if (this.echo && options.destination === undefined) gain.connect(this.echo)
+    if (this.reverb && options.destination === undefined) {
+      gain.connect(this.reverb)
+    }
     source.start(start)
     source.stop(start + duration)
   }
@@ -195,17 +254,23 @@ class SoundPlayer {
     to: number,
     duration: number,
     peak: number,
+    destination?: AudioNode,
   ): void {
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.type = 'sine'
     osc.frequency.setValueAtTime(from, start)
-    osc.frequency.exponentialRampToValueAtTime(to, start + duration)
+    // Drop to the resting pitch quickly, then hold: a slow glide over the whole
+    // tail whistles downwards and reads as a bouncing ball, not a gun.
+    osc.frequency.exponentialRampToValueAtTime(
+      to,
+      start + Math.min(0.1, duration * 0.3),
+    )
     gain.gain.setValueAtTime(0.0001, start)
     gain.gain.linearRampToValueAtTime(peak, start + 0.012)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
-    osc.connect(gain).connect(this.out())
-    if (this.echo) gain.connect(this.echo)
+    osc.connect(gain).connect(destination ?? this.out())
+    if (this.reverb && destination === undefined) gain.connect(this.reverb)
     osc.start(start)
     osc.stop(start + duration + 0.02)
   }
@@ -227,14 +292,15 @@ class SoundPlayer {
       startFreq: 1600,
       endFreq: 180,
     })
-    this.sub(ctx, now, 110, 34, 0.75, 0.9)
+    this.sub(ctx, now, 120, 48, 0.5, 0.85)
+    // Rumble rolling away over the water.
     this.noise(ctx, {
       start: now + 0.12,
-      duration: 1.1,
-      peak: 0.22,
+      duration: 1.2,
+      peak: 0.26,
       filterType: 'lowpass',
-      startFreq: 400,
-      endFreq: 90,
+      startFreq: 320,
+      endFreq: 70,
     })
   }
 
@@ -256,7 +322,15 @@ class SoundPlayer {
       startFreq: 1800,
       endFreq: 140,
     })
-    this.sub(ctx, start, 120, 26, 1.3 * scale, 1)
+    this.sub(ctx, start, 130, 42, 0.8 * scale, 1)
+    this.noise(ctx, {
+      start,
+      duration: 1.5 * scale,
+      peak: 0.3 * scale,
+      filterType: 'lowpass',
+      startFreq: 260,
+      endFreq: 60,
+    })
     this.noise(ctx, {
       start: start + 0.18,
       duration: 1.4 * scale,
@@ -297,7 +371,7 @@ class SoundPlayer {
     growl.type = 'lowpass'
     growl.frequency.value = 700
     groan.connect(growl).connect(gain).connect(this.out())
-    if (this.echo) gain.connect(this.echo)
+    if (this.reverb) gain.connect(this.reverb)
     groan.start(now + 0.5)
     groan.stop(now + 2.45)
   }
@@ -350,6 +424,117 @@ class SoundPlayer {
     duration: number,
   ): void {
     this.tone(ctx, now, freq, duration, 'square', 0.12)
+  }
+
+  /** Starts the looping menu march. Safe to call repeatedly. */
+  startMusic(): void {
+    if (this.muted || this.musicTimer !== null) return
+    const ctx = this.ensureContext()
+    if (!ctx || !this.music) return
+    if (ctx.state !== 'running') {
+      // Autoplay policy: wait for the context to be unlocked by a gesture,
+      // otherwise the loop would be scheduled against a frozen clock.
+      void ctx.resume().then(() => this.startMusic())
+      return
+    }
+
+    this.music.gain.cancelScheduledValues(ctx.currentTime)
+    this.music.gain.setValueAtTime(0.0001, ctx.currentTime)
+    this.music.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 1.2)
+    this.scheduleMusicLoop(ctx.currentTime + 0.15)
+  }
+
+  /** Fades the menu march out and cancels further scheduling. */
+  stopMusic(): void {
+    if (this.musicTimer !== null) {
+      clearTimeout(this.musicTimer)
+      this.musicTimer = null
+    }
+    const ctx = this.context
+    if (!ctx || !this.music) return
+    const level = this.music.gain.value
+    this.music.gain.cancelScheduledValues(ctx.currentTime)
+    this.music.gain.setValueAtTime(level, ctx.currentTime)
+    this.music.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.6)
+  }
+
+  /** Schedules one pass of the loop, then queues the next before it ends. */
+  private scheduleMusicLoop(startTime: number): void {
+    const ctx = this.context
+    const bus = this.music
+    if (!ctx || !bus) return
+
+    const beat = 60 / MARCH_BPM
+    for (const note of marchNotes()) {
+      const at = startTime + note.beat * beat
+      switch (note.voice) {
+        case 'brass':
+          this.brass(ctx, at, note.freq, note.length * beat, bus)
+          break
+        case 'bass':
+          this.brass(ctx, at, note.freq, note.length * beat, bus, 0.6)
+          break
+        case 'kick':
+          this.sub(ctx, at, 115, 52, 0.24, 0.5, bus)
+          break
+        case 'snare':
+          this.noise(ctx, {
+            start: at,
+            duration: 0.13,
+            peak: 0.22,
+            filterType: 'highpass',
+            startFreq: 1500,
+            destination: bus,
+          })
+          break
+      }
+    }
+
+    const nextStart = startTime + MARCH_LOOP_BEATS * beat
+    const delayMs = Math.max(0, (nextStart - ctx.currentTime - 0.25) * 1000)
+    this.musicTimer = setTimeout(() => {
+      this.musicTimer = null
+      this.scheduleMusicLoop(nextStart)
+    }, delayMs)
+  }
+
+  /** Horn-section voice: stacked detuned saws behind a swept lowpass. */
+  private brass(
+    ctx: AudioContext,
+    start: number,
+    freq: number,
+    duration: number,
+    destination: AudioNode,
+    level = 1,
+  ): void {
+    const attack = 0.045
+    const gain = ctx.createGain()
+    gain.gain.setValueAtTime(0.0001, start)
+    gain.gain.linearRampToValueAtTime(0.14 * level, start + attack)
+    gain.gain.setValueAtTime(0.12 * level, start + duration * 0.6)
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+
+    const timbre = ctx.createBiquadFilter()
+    timbre.type = 'lowpass'
+    timbre.frequency.setValueAtTime(freq * 2, start)
+    timbre.frequency.linearRampToValueAtTime(freq * 6, start + attack)
+    timbre.frequency.exponentialRampToValueAtTime(
+      Math.max(freq * 2, 200),
+      start + duration,
+    )
+    timbre.Q.value = 3
+
+    for (const detune of [-7, 0, 7]) {
+      const osc = ctx.createOscillator()
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(freq, start)
+      osc.detune.setValueAtTime(detune, start)
+      osc.connect(timbre)
+      osc.start(start)
+      osc.stop(start + duration + 0.05)
+    }
+
+    timbre.connect(gain).connect(destination)
   }
 }
 
