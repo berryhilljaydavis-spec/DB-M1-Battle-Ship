@@ -7,7 +7,7 @@ import { OceanCanvas } from './components/OceanCanvas'
 import { PlacementControls } from './components/PlacementControls'
 import { GameEmblem } from './components/Insignia'
 import { StartMenu } from './components/StartMenu'
-import { VictorySalute } from './components/VictorySalute'
+import { VictoryScene } from './components/VictoryScene'
 import { StatusPanel } from './components/StatusPanel'
 import { useBattleship } from './hooks/useBattleship'
 import { findShipAt } from './game/placement'
@@ -27,16 +27,24 @@ export function App() {
   } = useBattleship()
 
   const [inMenu, setInMenu] = useState(true)
+  const [showBoards, setShowBoards] = useState(false)
   const isPlacing = state.phase === 'placement'
 
   const openMenu = useCallback(() => {
     restart()
+    setShowBoards(false)
     setInMenu(true)
   }, [restart])
 
   const leaveMenu = useCallback(() => {
     restart()
+    setShowBoards(false)
     setInMenu(false)
+  }, [restart])
+
+  const playAgain = useCallback(() => {
+    restart()
+    setShowBoards(false)
   }, [restart])
 
   const handleFire = useCallback(
@@ -93,10 +101,21 @@ export function App() {
     )
   }
 
+  if (humanWon && !showBoards) {
+    return (
+      <main className="app app--cutscene">
+        <VictoryScene
+          onPlayAgain={playAgain}
+          onMenu={openMenu}
+          onShowBoards={() => setShowBoards(true)}
+        />
+      </main>
+    )
+  }
+
   return (
     <main className="app">
       <OceanCanvas />
-      {humanWon && <VictorySalute />}
 
       <header className="app__header">
         <GameEmblem />
