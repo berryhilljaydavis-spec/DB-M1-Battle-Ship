@@ -61,8 +61,21 @@ function CellComponent({
         disabled={!interactive}
         draggable={draggable || undefined}
         onClick={() => onFire?.(row, col)}
-        onDragStart={onDragStart && (() => onDragStart(row, col))}
-        onDragOver={onDrop && ((event) => event.preventDefault())}
+        onDragStart={
+          onDragStart &&
+          ((event) => {
+            event.dataTransfer.effectAllowed = 'move'
+            event.dataTransfer.setData('text/plain', `${row},${col}`)
+            onDragStart(row, col)
+          })
+        }
+        onDragOver={
+          onDrop &&
+          ((event) => {
+            event.preventDefault()
+            event.dataTransfer.dropEffect = 'move'
+          })
+        }
         onDrop={
           onDrop &&
           ((event) => {
