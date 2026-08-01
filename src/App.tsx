@@ -136,7 +136,7 @@ export function App() {
         <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
       </header>
 
-      <StatusPanel state={state} onRestart={restart} onMenu={openMenu} />
+      <StatusPanel state={state} onRestart={playAgain} onMenu={openMenu} />
 
       {isPlacing && (
         <PlacementControls

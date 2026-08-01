@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from './App'
 import { BOARD_SIZE, FLEET } from './game/constants'
+import { createGame } from './game/engine'
+import type { GameState } from './game/engine'
+import * as battleshipHook from './hooks/useBattleship'
 
 const SHIP_CELLS = FLEET.reduce((sum, ship) => sum + ship.size, 0)
 
@@ -89,6 +92,56 @@ describe('App', () => {
     expect(
       screen.getByRole('button', { name: 'Start battle' }),
     ).toBeInTheDocument()
+  })
+
+  it('returns to the victory scene after starting again from reviewed boards', async () => {
+    const game = createGame(() => 0.1)
+    const victory: GameState = {
+      ...game,
+      aiBoard: {
+        ...game.aiBoard,
+        grid: game.aiBoard.grid.map((row) =>
+          row.map((cell) => (cell === 'ship' ? 'hit' : cell)),
+        ),
+        ships: game.aiBoard.ships.map((ship) => ({
+          ...ship,
+          hits: ship.size,
+        })),
+      },
+      phase: 'game-over',
+      winner: 'human',
+    }
+    const hookSpy = vi
+      .spyOn(battleshipHook, 'useBattleship')
+      .mockImplementation(() => {
+        return {
+          state: victory,
+          selection: null,
+          fireAt: () => undefined,
+          placeAt: () => undefined,
+          grabAt: () => undefined,
+          rotateSelection: () => undefined,
+          randomizeFleet: () => undefined,
+          startBattle: () => undefined,
+          restart: () => undefined,
+        }
+      })
+
+    try {
+      render(<App />)
+      await userEvent.click(screen.getByRole('button', { name: 'Deploy fleet' }))
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Review boards' }),
+      )
+      await userEvent.click(screen.getByRole('button', { name: 'New game' }))
+
+      expect(
+        screen.getByText('Enemy flagship going down'),
+      ).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Victory' })).toBeInTheDocument()
+    } finally {
+      hookSpy.mockRestore()
+    }
   })
 })
 
