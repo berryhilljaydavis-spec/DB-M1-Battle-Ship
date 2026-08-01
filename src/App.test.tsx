@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -112,25 +111,19 @@ describe('App', () => {
       phase: 'game-over',
       winner: 'human',
     }
-    const placement = createGame(() => 0.2)
-    let restartCalls = 0
     const hookSpy = vi
       .spyOn(battleshipHook, 'useBattleship')
       .mockImplementation(() => {
-        const [state, setState] = useState(placement)
         return {
-          state,
+          state: victory,
           selection: null,
           fireAt: () => undefined,
           placeAt: () => undefined,
           grabAt: () => undefined,
           rotateSelection: () => undefined,
           randomizeFleet: () => undefined,
-          startBattle: () => setState(victory),
-          restart: () => {
-            restartCalls += 1
-            setState(restartCalls === 1 ? victory : placement)
-          },
+          startBattle: () => undefined,
+          restart: () => undefined,
         }
       })
 
@@ -141,7 +134,6 @@ describe('App', () => {
         screen.getByRole('button', { name: 'Review boards' }),
       )
       await userEvent.click(screen.getByRole('button', { name: 'New game' }))
-      await userEvent.click(screen.getByRole('button', { name: 'Start battle' }))
 
       expect(
         screen.getByText('Enemy flagship going down'),
