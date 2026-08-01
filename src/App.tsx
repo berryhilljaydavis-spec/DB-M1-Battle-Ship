@@ -6,11 +6,14 @@ import { FleetStatus } from './components/FleetStatus'
 import { OceanCanvas } from './components/OceanCanvas'
 import { PlacementControls } from './components/PlacementControls'
 import { GameEmblem } from './components/Insignia'
+import { SoundToggle } from './components/SoundToggle'
 import { StartMenu } from './components/StartMenu'
 import { VictoryScene } from './components/VictoryScene'
 import { StatusPanel } from './components/StatusPanel'
 import { useBattleship } from './hooks/useBattleship'
 import { findShipAt } from './game/placement'
+import { useGameSounds } from './sound/useGameSounds'
+import { useSoundPreference } from './sound/useSoundPreference'
 import './App.css'
 
 export function App() {
@@ -28,7 +31,10 @@ export function App() {
 
   const [inMenu, setInMenu] = useState(true)
   const [showBoards, setShowBoards] = useState(false)
+  const [soundEnabled, toggleSound] = useSoundPreference()
   const isPlacing = state.phase === 'placement'
+
+  useGameSounds(state)
 
   const openMenu = useCallback(() => {
     restart()
@@ -96,6 +102,7 @@ export function App() {
     return (
       <main className="app app--menu">
         <OceanCanvas />
+        <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
         <StartMenu onStart={leaveMenu} />
       </main>
     )
@@ -104,6 +111,7 @@ export function App() {
   if (humanWon && !showBoards) {
     return (
       <main className="app app--cutscene">
+        <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
         <VictoryScene
           onPlayAgain={playAgain}
           onMenu={openMenu}
@@ -123,6 +131,7 @@ export function App() {
           <h1>Battleship</h1>
           <p>Sink the enemy fleet before it sinks yours.</p>
         </div>
+        <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
       </header>
 
       <StatusPanel state={state} onRestart={restart} onMenu={openMenu} />

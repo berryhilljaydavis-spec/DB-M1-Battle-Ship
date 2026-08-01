@@ -15,6 +15,7 @@ import {
   shipOrientation,
 } from '../game/placement'
 import type { Coord } from '../game/types'
+import { soundPlayer } from '../sound/player'
 
 export const AI_TURN_DELAY_MS = 600
 
@@ -83,6 +84,7 @@ export function useBattleship(): Battleship {
       const moved = moveShip(humanBoard, selected.name, start, orientation)
 
       if (moved) {
+        soundPlayer.play('place')
         setState((current) => ({ ...current, humanBoard: moved }))
         return
       }
@@ -97,12 +99,14 @@ export function useBattleship(): Battleship {
     if (!isPlacing || !selection) return
     const rotated = rotateShip(humanBoard, selection.name)
     if (!rotated) return
+    soundPlayer.play('rotate')
     setSelection({ name: selection.name, offset: 0 })
     setState((current) => ({ ...current, humanBoard: rotated }))
   }, [isPlacing, humanBoard, selection])
 
   const randomizeFleet = useCallback(() => {
     if (!isPlacing) return
+    soundPlayer.play('place')
     setSelection(null)
     setState((current) => ({ ...current, humanBoard: placeFleetRandomly() }))
   }, [isPlacing])
