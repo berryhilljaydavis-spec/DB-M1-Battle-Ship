@@ -657,6 +657,17 @@ body {
   animation-delay: inherit;
 }
 
+/* Expanding flak ring around each airburst. */
+.salute__burst::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 226, 160, 0.75);
+  animation: shot-ring 2.8s ease-out infinite;
+  animation-delay: inherit;
+}
+
 @keyframes shot-rise {
   0% {
     transform: translate(0, 0) scaleY(0.4);
@@ -684,12 +695,28 @@ body {
   }
   76% {
     opacity: 1;
-    scale: 3.4;
+    scale: 6;
   }
-  90%,
+  92%,
   100% {
     opacity: 0;
-    scale: 5;
+    scale: 9;
+  }
+}
+
+@keyframes shot-ring {
+  0%,
+  72% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  78% {
+    opacity: 0.9;
+  }
+  95%,
+  100% {
+    opacity: 0;
+    transform: scale(4);
   }
 }
 
@@ -698,11 +725,17 @@ body {
   .gunship__body,
   .gunship__muzzle,
   .salute__shot,
-  .salute__burst {
+  .salute__burst,
+  .salute__burst::after,
+  .destruction__blast,
+  .destruction__smoke,
+  .destruction__fire,
+  .side--destroyed {
     animation: none;
   }
 
-  .salute {
+  .salute,
+  .destruction {
     display: none;
   }
 }
@@ -785,4 +818,200 @@ body {
   background: transparent;
   color: var(--text);
   border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* ---------------------------------------------------------------- *
+ * Losing fleet destruction
+ * ---------------------------------------------------------------- */
+
+.side {
+  position: relative;
+}
+
+.side--destroyed {
+  animation: hull-shake 260ms ease-in-out infinite;
+  border-color: rgba(255, 138, 74, 0.85);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    inset 0 0 70px rgba(255, 96, 32, 0.35);
+}
+
+.destruction {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+/* Burning glow that pulses across the wrecked board. */
+.destruction__fire {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 30% 70%,
+      rgba(255, 138, 44, 0.5) 0%,
+      rgba(255, 80, 20, 0) 55%
+    ),
+    radial-gradient(
+      ellipse at 72% 45%,
+      rgba(255, 176, 64, 0.45) 0%,
+      rgba(190, 40, 10, 0) 60%
+    );
+  animation: fire-flicker 900ms ease-in-out infinite alternate;
+}
+
+.destruction__blast {
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  margin: -48px 0 0 -48px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #ffffff 0%,
+    #ffe9a8 18%,
+    #ff9c2e 42%,
+    rgba(214, 52, 12, 0.6) 65%,
+    rgba(90, 20, 0, 0) 78%
+  );
+  filter: blur(1.6px);
+  animation: board-blast 3.2s cubic-bezier(0.18, 0.9, 0.32, 1) infinite;
+}
+
+/* Glowing debris thrown clear of the fireball. */
+.destruction__blast::before {
+  content: '';
+  position: absolute;
+  inset: 42%;
+  border-radius: 50%;
+  background: #fff3d0;
+  box-shadow:
+    20px -28px 0 -1px #ffcf7a,
+    -26px -15px 0 -2px #ffb347,
+    32px 13px 0 -1px #ff9d3d,
+    -19px 24px 0 -2px #ffd08a,
+    5px -37px 0 -2px #fff0c4,
+    -36px 5px 0 -1px #ff8c2e,
+    12px 30px 0 -2px #ffbe6b;
+  animation: board-debris 3.2s ease-out infinite;
+  animation-delay: inherit;
+}
+
+/* Shockwave ring travelling out of each blast. */
+.destruction__blast::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 226, 178, 0.7);
+  animation: board-shockwave 3.2s ease-out infinite;
+  animation-delay: inherit;
+}
+
+.destruction__smoke {
+  position: absolute;
+  bottom: 8%;
+  width: 130px;
+  height: 130px;
+  margin-left: -65px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(72, 66, 62, 0.75) 0%,
+    rgba(46, 42, 40, 0.35) 45%,
+    rgba(30, 28, 26, 0) 72%
+  );
+  animation: board-smoke 4.4s ease-out infinite;
+}
+
+@keyframes hull-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-2px, 1px);
+  }
+  50% {
+    transform: translate(2px, -1px);
+  }
+  75% {
+    transform: translate(-1px, -2px);
+  }
+}
+
+@keyframes fire-flicker {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes board-blast {
+  0% {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+  6% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  22% {
+    opacity: 0.85;
+    transform: scale(1.35);
+  }
+  45%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes board-debris {
+  0% {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+  8% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes board-shockwave {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  8% {
+    opacity: 0.9;
+  }
+  40%,
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+@keyframes board-smoke {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4);
+  }
+  15% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-260px) scale(1.9);
+  }
 }

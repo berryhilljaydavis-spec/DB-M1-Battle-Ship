@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Board } from './components/Board'
 import type { BoardPlacement } from './components/Board'
+import { FleetDestruction } from './components/FleetDestruction'
 import { FleetStatus } from './components/FleetStatus'
 import { OceanCanvas } from './components/OceanCanvas'
 import { PlacementControls } from './components/PlacementControls'
@@ -78,7 +79,9 @@ export function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [isPlacing, rotateSelection])
 
-  const humanWon = state.phase === 'game-over' && state.winner === 'human'
+  const isOver = state.phase === 'game-over'
+  const humanWon = isOver && state.winner === 'human'
+  const loser = isOver ? (humanWon ? 'enemy' : 'friendly') : null
 
   if (inMenu) {
     return (
@@ -111,7 +114,12 @@ export function App() {
       )}
 
       <div className="app__boards">
-        <section className="side side--friendly">
+        <section
+          className={`side side--friendly${
+            loser === 'friendly' ? ' side--destroyed' : ''
+          }`}
+        >
+          {loser === 'friendly' && <FleetDestruction />}
           <Board
             title="Your fleet"
             side="friendly"
@@ -133,7 +141,12 @@ export function App() {
           />
         </section>
 
-        <section className="side side--enemy">
+        <section
+          className={`side side--enemy${
+            loser === 'enemy' ? ' side--destroyed' : ''
+          }`}
+        >
+          {loser === 'enemy' && <FleetDestruction />}
           <Board
             title="Enemy waters"
             side="enemy"
