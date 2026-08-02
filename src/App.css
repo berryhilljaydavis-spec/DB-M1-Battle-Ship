@@ -123,16 +123,20 @@ body {
 }
 
 .board__header {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  gap: 0.15rem 0.6rem;
+  display: flex;
+  gap: 0.6rem;
   align-items: center;
   margin-bottom: 0.75rem;
 }
 
+.board__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .crest {
-  grid-column: 1;
-  grid-row: 1 / -1;
+  flex: none;
   width: 2.1rem;
   height: 2.3rem;
   color: var(--side-accent);
@@ -140,10 +144,7 @@ body {
 }
 
 .board__badge {
-  grid-column: 2;
-  grid-row: 1 / -1;
-  justify-self: start;
-  align-self: center;
+  flex: none;
   padding: 0.3rem 0.6rem;
   border-radius: 999px;
   font-size: 0.7rem;
@@ -160,14 +161,8 @@ body {
   opacity: 0.75;
 }
 
-.board__title,
-.board__team,
-.board__subtitle {
-  grid-column: 3;
-}
-
 .board__team {
-  margin: 0 0 0.2rem;
+  margin: 0;
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -190,11 +185,16 @@ body {
 
 .board__title,
 .fleet__title {
-  margin: 0 0 0.5rem;
+  margin: 0;
   font-size: 1rem;
+  line-height: 1.3;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   opacity: 0.8;
+}
+
+.fleet__title {
+  margin-bottom: 0.5rem;
 }
 
 .board__grid {

@@ -45,13 +45,15 @@ export function Board({
         <span className="board__badge">
           {team ? team.abbr : side === 'enemy' ? 'Enemy' : 'You'}
         </span>
-        <h2 className="board__title">{title}</h2>
-        {team && (
-          <p className="board__team">
-            {team.school} {team.nickname}
-          </p>
-        )}
-        {subtitle && <p className="board__subtitle">{subtitle}</p>}
+        <div className="board__heading">
+          <h2 className="board__title">{title}</h2>
+          {team && (
+            <p className="board__team">
+              {team.school} {team.nickname}
+            </p>
+          )}
+          {subtitle && <p className="board__subtitle">{subtitle}</p>}
+        </div>
       </header>
       <div className="board__grid">
         <span className="board__corner" />
