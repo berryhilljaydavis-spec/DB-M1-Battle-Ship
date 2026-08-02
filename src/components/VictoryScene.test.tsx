@@ -17,6 +17,7 @@ describe('VictoryScene', () => {
       />,
     )
 
+    expect(screen.getByText('Your fleet wins')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent(
       'The enemy fleet is destroyed.',
     )

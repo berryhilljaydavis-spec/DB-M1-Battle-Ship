@@ -135,9 +135,7 @@ describe('App', () => {
       )
       await userEvent.click(screen.getByRole('button', { name: 'New game' }))
 
-      expect(
-        screen.getByText('Enemy flagship going down'),
-      ).toBeInTheDocument()
+      expect(screen.getByText('Your fleet wins')).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Victory' })).toBeInTheDocument()
     } finally {
       hookSpy.mockRestore()

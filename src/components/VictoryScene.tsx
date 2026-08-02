@@ -93,7 +93,7 @@ export function VictoryScene({
       </div>
 
       <div className="cutscene__panel cutscene__panel--entrance">
-        <p className="cutscene__kicker">Enemy flagship going down</p>
+        <p className="cutscene__kicker cutscene__winner">Your fleet wins</p>
         <h2 className="cutscene__title">Victory</h2>
         <p className="cutscene__text" role="status">
           The enemy fleet is destroyed.
