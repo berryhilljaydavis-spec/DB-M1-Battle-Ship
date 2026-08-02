@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { drawSinkingScene } from '../ocean/sinking'
+import { VictoryCannons } from './VictoryCannons'
 
 const MAX_PIXEL_RATIO = 2
 
@@ -16,15 +18,29 @@ export function VictoryScene({
   onShowBoards,
 }: VictorySceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [shaking, setShaking] = useState(false)
+  const reduceMotionRef = useRef(false)
+
+  const shakeTimer = useRef<number | null>(null)
+  const handleShot = useCallback((strength: number) => {
+    if (reduceMotionRef.current) return
+    setShaking(true)
+    if (shakeTimer.current !== null) window.clearTimeout(shakeTimer.current)
+    shakeTimer.current = window.setTimeout(
+      () => setShaking(false),
+      220 + strength * 100,
+    )
+  }, [])
 
   useEffect(() => {
+    const reduceMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    reduceMotionRef.current = reduceMotion
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
 
-    const reduceMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches
     let size = { width: 0, height: 0 }
     let frame = 0
     let start = 0
@@ -51,14 +67,27 @@ export function VictoryScene({
     return () => {
       window.removeEventListener('resize', resize)
       if (frame) window.cancelAnimationFrame(frame)
+      if (shakeTimer.current !== null) window.clearTimeout(shakeTimer.current)
     }
   }, [])
 
   return (
-    <section className="cutscene" aria-label="Victory">
+    <section
+      className={`cutscene${shaking ? ' cutscene--shaking' : ''}`}
+      aria-label="Victory"
+    >
       <canvas ref={canvasRef} className="cutscene__canvas" aria-hidden="true" />
+      <VictoryCannons onShot={handleShot} />
+      <div className="cutscene__embers" aria-hidden="true">
+        {Array.from({ length: 14 }, (_, index) => (
+          <span
+            key={index}
+            style={{ '--ember-index': index } as CSSProperties}
+          />
+        ))}
+      </div>
 
-      <div className="cutscene__panel">
+      <div className="cutscene__panel cutscene__panel--entrance">
         <p className="cutscene__kicker">Enemy flagship going down</p>
         <h2 className="cutscene__title">Victory</h2>
         <p className="cutscene__text" role="status">

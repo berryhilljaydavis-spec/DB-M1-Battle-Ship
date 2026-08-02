@@ -44,6 +44,7 @@ function impulseResponse(ctx: BaseAudioContext, seconds: number): AudioBuffer {
 const RETRIGGER_GAP = 0.07
 /** Effects allowed to overlap before new ones are dropped. */
 const MAX_VOICES = 4
+export const VICTORY_VOLLEY_OFFSETS = [0, 0.36, 0.73, 1.13, 1.56] as const
 
 /** Soft-clipping curve so heavy layers saturate instead of digitally clipping. */
 function saturationCurve(): Float32Array<ArrayBuffer> {
@@ -111,6 +112,16 @@ class SoundPlayer {
       case 'rotate':
         return this.blip(ctx, now, 440, 0.06)
     }
+  }
+
+  playVictoryVolley(scale = 0.8): void {
+    if (this.muted) return
+    const ctx = this.ensureContext()
+    if (!ctx) return
+    if (ctx.state === 'suspended') void ctx.resume()
+    const now = ctx.currentTime
+    if (!this.claimVoice('victory', now)) return
+    this.scheduleVictoryVolley(ctx, now, scale)
   }
 
   private ensureContext(): AudioContext | null {
@@ -422,21 +433,23 @@ class SoundPlayer {
 
   /** Victory: a staggered salute of heavy guns, then the winning motif. */
   private victorySalute(ctx: AudioContext, now: number): void {
-    const volley = [
-      [0, 0.72],
-      [0.36, 0.62],
-      [0.73, 0.7],
-      [1.13, 0.58],
-      [1.56, 0.66],
-    ] as const
-    volley.forEach(([offset, scale], index) => {
+    this.scheduleVictoryVolley(ctx, now, 1)
+    this.fanfare(ctx, now + 1.4, [523.25, 659.25, 783.99, 1046.5], 0.16)
+  }
+
+  private scheduleVictoryVolley(
+    ctx: AudioContext,
+    now: number,
+    scale: number,
+  ): void {
+    VICTORY_VOLLEY_OFFSETS.forEach((offset, index) => {
+      const shotScale = [0.72, 0.62, 0.7, 0.58, 0.66][index] * scale
       if (index % 2 === 0) {
-        this.cannon(ctx, now + offset, scale)
+        this.cannon(ctx, now + offset, shotScale)
       } else {
-        this.detonation(ctx, now + offset, scale)
+        this.detonation(ctx, now + offset, shotScale)
       }
     })
-    this.fanfare(ctx, now + 1.4, [523.25, 659.25, 783.99, 1046.5], 0.16)
   }
 
   private blip(
