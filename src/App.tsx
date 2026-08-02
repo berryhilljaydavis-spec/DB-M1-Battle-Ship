@@ -8,10 +8,13 @@ import { PlacementControls } from './components/PlacementControls'
 import { GameEmblem } from './components/Insignia'
 import { SoundToggle } from './components/SoundToggle'
 import { StartMenu } from './components/StartMenu'
+import { TeamSelect } from './components/TeamSelect'
 import { VictoryScene } from './components/VictoryScene'
 import { StatusPanel } from './components/StatusPanel'
 import { useBattleship } from './hooks/useBattleship'
 import { findShipAt } from './game/placement'
+import { opposingTeam } from './game/teams'
+import type { Team } from './game/teams'
 import { useGameSounds } from './sound/useGameSounds'
 import { useMenuMusic } from './sound/useMenuMusic'
 import { useSoundPreference } from './sound/useSoundPreference'
@@ -31,24 +34,33 @@ export function App() {
   } = useBattleship()
 
   const [inMenu, setInMenu] = useState(true)
+  const [matchup, setMatchup] = useState<{ player: Team; enemy: Team } | null>(
+    null,
+  )
   const [showBoards, setShowBoards] = useState(false)
   const [soundEnabled, toggleSound] = useSoundPreference()
   const isPlacing = state.phase === 'placement'
 
   useGameSounds(state)
-  useMenuMusic(inMenu && soundEnabled)
+  useMenuMusic((inMenu || !matchup) && soundEnabled)
 
   const openMenu = useCallback(() => {
     restart()
     setShowBoards(false)
+    setMatchup(null)
     setInMenu(true)
   }, [restart])
 
   const leaveMenu = useCallback(() => {
     restart()
     setShowBoards(false)
+    setMatchup(null)
     setInMenu(false)
   }, [restart])
+
+  const chooseTeam = useCallback((player: Team) => {
+    setMatchup({ player, enemy: opposingTeam(player) })
+  }, [])
 
   const playAgain = useCallback(() => {
     restart()
@@ -110,6 +122,16 @@ export function App() {
     )
   }
 
+  if (!matchup) {
+    return (
+      <main className="app app--menu">
+        <OceanCanvas />
+        <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
+        <TeamSelect onConfirm={chooseTeam} onBack={openMenu} />
+      </main>
+    )
+  }
+
   if (humanWon && !showBoards) {
     return (
       <main className="app app--cutscene">
@@ -152,6 +174,7 @@ export function App() {
           className={`side side--friendly${
             loser === 'friendly' ? ' side--destroyed' : ''
           }`}
+          style={teamStyle(matchup.player)}
         >
           {loser === 'friendly' && <FleetDestruction />}
           <Board
@@ -163,6 +186,7 @@ export function App() {
                 : 'Defend — the AI fires here'
             }
             board={state.humanBoard}
+            team={matchup.player}
             revealShips
             interactive={isPlacing}
             onFire={isPlacing ? handlePlace : undefined}
@@ -179,6 +203,7 @@ export function App() {
           className={`side side--enemy${
             loser === 'enemy' ? ' side--destroyed' : ''
           }`}
+          style={teamStyle(matchup.enemy)}
         >
           {loser === 'enemy' && <FleetDestruction />}
           <Board
@@ -186,6 +211,7 @@ export function App() {
             side="enemy"
             subtitle="Attack — click a square to fire"
             board={state.aiBoard}
+            team={matchup.enemy}
             revealShips={state.phase === 'game-over'}
             interactive={state.phase === 'human-turn'}
             onFire={handleFire}
@@ -195,6 +221,14 @@ export function App() {
       </div>
     </main>
   )
+}
+
+function teamStyle(team: Team): React.CSSProperties {
+  return {
+    '--side-accent': team.accent,
+    '--side-line': team.line,
+    '--side-tint': team.tint,
+  } as React.CSSProperties
 }
 
 export default App

@@ -23,10 +23,16 @@ function shipCells(boardName: string) {
     .filter((cell) => cell.getAttribute('aria-label')?.endsWith('ship'))
 }
 
+/** Leaves the title screen and picks a team so the fleet is placeable. */
+async function enterGame() {
+  await userEvent.click(screen.getByRole('button', { name: 'Deploy fleet' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Take command' }))
+}
+
 /** Renders the app and leaves the title screen so the fleet is placeable. */
 async function renderGame() {
   render(<App />)
-  await userEvent.click(screen.getByRole('button', { name: 'Deploy fleet' }))
+  await enterGame()
 }
 
 async function startBattle() {
@@ -38,11 +44,26 @@ describe('start menu', () => {
     render(<App />)
     expect(screen.queryByLabelText('Enemy waters')).not.toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Deploy fleet' }))
+    await enterGame()
     expect(screen.getByLabelText('Enemy waters')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Start battle' }),
     ).toBeInTheDocument()
+  })
+
+  it('asks for a team before the boards appear', async () => {
+    render(<App />)
+    await userEvent.click(screen.getByRole('button', { name: 'Deploy fleet' }))
+
+    expect(screen.getByLabelText('Team selection')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Enemy waters')).not.toBeInTheDocument()
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /University of Kentucky/ }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Take command' }))
+
+    expect(screen.getByText(/University of Kentucky Wildcats/)).toBeInTheDocument()
   })
 
   it('returns to the menu from the game', async () => {
@@ -129,7 +150,7 @@ describe('App', () => {
 
     try {
       render(<App />)
-      await userEvent.click(screen.getByRole('button', { name: 'Deploy fleet' }))
+      await enterGame()
       await userEvent.click(
         screen.getByRole('button', { name: 'Review boards' }),
       )
