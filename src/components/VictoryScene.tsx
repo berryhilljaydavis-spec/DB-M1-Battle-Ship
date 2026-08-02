@@ -34,6 +34,7 @@ export function VictoryScene({
   }, [])
 
   useEffect(() => {
+    soundPlayer.resumeVictory()
     return () => {
       if (shakeTimer.current !== null) window.clearTimeout(shakeTimer.current)
       soundPlayer.stopVictory()

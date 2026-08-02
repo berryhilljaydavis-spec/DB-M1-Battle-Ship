@@ -137,6 +137,12 @@ class SoundPlayer {
     victory.gain.linearRampToValueAtTime(0.0001, now + 0.08)
   }
 
+  resumeVictory(): void {
+    const ctx = this.context
+    if (!ctx) return
+    this.prepareVictory(ctx.currentTime)
+  }
+
   private prepareVictory(now: number): void {
     if (!this.victory) return
     this.victory.gain.cancelScheduledValues(now)

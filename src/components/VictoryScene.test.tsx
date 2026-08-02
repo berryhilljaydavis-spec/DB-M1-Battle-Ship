@@ -8,6 +8,7 @@ vi.mock('../sound/player', () => ({
   VICTORY_VOLLEY_OFFSETS: [0, 1.4, 2.9, 4.5, 6.2],
   soundPlayer: {
     playVictoryVolley: vi.fn(),
+    resumeVictory: vi.fn(),
     stopVictory: vi.fn(),
   },
 }))
@@ -27,6 +28,7 @@ describe('VictoryScene', () => {
     )
 
     expect(screen.getByText('Your fleet wins')).toBeInTheDocument()
+    expect(soundPlayer.resumeVictory).toHaveBeenCalledOnce()
     expect(screen.getByRole('status')).toHaveTextContent(
       'The enemy fleet is destroyed.',
     )
