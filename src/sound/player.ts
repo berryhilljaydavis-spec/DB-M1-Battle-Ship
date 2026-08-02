@@ -69,6 +69,7 @@ class SoundPlayer {
   private master: GainNode | null = null
   private effects: GainNode | null = null
   private reverb: GainNode | null = null
+  private victory: GainNode | null = null
   private music: GainNode | null = null
   private muted = false
   private lastPlayed = new Map<SoundName, number>()
@@ -121,7 +122,25 @@ class SoundPlayer {
     if (ctx.state === 'suspended') void ctx.resume()
     const now = ctx.currentTime
     if (!this.claimVoice('victory', now)) return
-    this.scheduleVictoryVolley(ctx, now, scale)
+    this.prepareVictory(now)
+    this.scheduleVictoryVolley(ctx, now, scale, this.victory ?? undefined)
+  }
+
+  stopVictory(): void {
+    const ctx = this.context
+    const victory = this.victory
+    if (!ctx || !victory) return
+
+    const now = ctx.currentTime
+    victory.gain.cancelScheduledValues(now)
+    victory.gain.setValueAtTime(Math.max(victory.gain.value, 0.0001), now)
+    victory.gain.linearRampToValueAtTime(0.0001, now + 0.08)
+  }
+
+  private prepareVictory(now: number): void {
+    if (!this.victory) return
+    this.victory.gain.cancelScheduledValues(now)
+    this.victory.gain.setValueAtTime(1, now)
   }
 
   private ensureContext(): AudioContext | null {
@@ -151,6 +170,10 @@ class SoundPlayer {
     effects.gain.value = 1
     effects.connect(master)
 
+    const victory = ctx.createGain()
+    victory.gain.value = 1
+    victory.connect(master)
+
     // Open-air tail. A convolved noise burst decays smoothly, unlike a
     // feedback delay, which repeats the blast and sounds like a bouncing ball.
     const reverb = ctx.createGain()
@@ -158,6 +181,7 @@ class SoundPlayer {
     const convolver = ctx.createConvolver()
     convolver.buffer = impulseResponse(ctx, 1.9)
     reverb.connect(convolver).connect(master)
+    victory.connect(reverb)
 
     const music = ctx.createGain()
     music.gain.value = 0
@@ -170,6 +194,7 @@ class SoundPlayer {
     this.master = master
     this.effects = effects
     this.reverb = reverb
+    this.victory = victory
     this.music = music
     return ctx
   }
@@ -210,6 +235,7 @@ class SoundPlayer {
     duration: number,
     type: OscillatorType,
     peak: number,
+    destination?: AudioNode,
   ): void {
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
@@ -218,7 +244,7 @@ class SoundPlayer {
     gain.gain.setValueAtTime(0.0001, start)
     gain.gain.exponentialRampToValueAtTime(peak, start + 0.01)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
-    osc.connect(gain).connect(this.out())
+    osc.connect(gain).connect(destination ?? this.out())
     osc.start(start)
     osc.stop(start + duration + 0.02)
   }
@@ -290,13 +316,19 @@ class SoundPlayer {
   }
 
   /** Main gun firing: crack, muzzle blast, sub thump, rolling tail. */
-  private cannon(ctx: AudioContext, now: number, scale = 1): void {
+  private cannon(
+    ctx: AudioContext,
+    now: number,
+    scale = 1,
+    destination?: AudioNode,
+  ): void {
     this.noise(ctx, {
       start: now,
       duration: 0.05,
       peak: 0.85 * scale,
       filterType: 'highpass',
       startFreq: 2200,
+      destination,
     })
     this.noise(ctx, {
       start: now,
@@ -305,8 +337,9 @@ class SoundPlayer {
       filterType: 'lowpass',
       startFreq: 1600,
       endFreq: 180,
+      destination,
     })
-    this.sub(ctx, now, 120, 48, 0.5, 0.85 * scale)
+    this.sub(ctx, now, 120, 48, 0.5, 0.85 * scale, destination)
     // Rumble rolling away over the water.
     this.noise(ctx, {
       start: now + 0.12,
@@ -315,11 +348,17 @@ class SoundPlayer {
       filterType: 'lowpass',
       startFreq: 320,
       endFreq: 70,
+      destination,
     })
   }
 
   /** Shell impact: flash crack, fireball roar, sub boom, debris crackle. */
-  private detonation(ctx: AudioContext, now: number, scale: number): void {
+  private detonation(
+    ctx: AudioContext,
+    now: number,
+    scale: number,
+    destination?: AudioNode,
+  ): void {
     const start = now + 0.09
     this.noise(ctx, {
       start,
@@ -327,6 +366,7 @@ class SoundPlayer {
       peak: 0.8 * scale,
       filterType: 'highpass',
       startFreq: 3000,
+      destination,
     })
     this.noise(ctx, {
       start,
@@ -335,8 +375,9 @@ class SoundPlayer {
       filterType: 'lowpass',
       startFreq: 1800,
       endFreq: 140,
+      destination,
     })
-    this.sub(ctx, start, 130, 42, 0.8 * scale, 1)
+    this.sub(ctx, start, 130, 42, 0.8 * scale, 1, destination)
     this.noise(ctx, {
       start,
       duration: 1.5 * scale,
@@ -344,6 +385,7 @@ class SoundPlayer {
       filterType: 'lowpass',
       startFreq: 260,
       endFreq: 60,
+      destination,
     })
     this.noise(ctx, {
       start: start + 0.18,
@@ -353,6 +395,7 @@ class SoundPlayer {
       startFreq: 900,
       endFreq: 160,
       q: 0.7,
+      destination,
     })
     // Debris crackle raining down.
     for (let i = 0; i < 5; i++) {
@@ -362,6 +405,7 @@ class SoundPlayer {
         peak: 0.12 * scale,
         filterType: 'highpass',
         startFreq: 2500,
+        destination,
       })
     }
   }
@@ -417,9 +461,18 @@ class SoundPlayer {
     now: number,
     notes: number[],
     step = 0.13,
+    destination?: AudioNode,
   ): void {
     notes.forEach((freq, index) => {
-      this.tone(ctx, now + index * step, freq, step + 0.18, 'triangle', 0.22)
+      this.tone(
+        ctx,
+        now + index * step,
+        freq,
+        step + 0.18,
+        'triangle',
+        0.22,
+        destination,
+      )
     })
   }
 
@@ -433,12 +486,14 @@ class SoundPlayer {
 
   /** Victory: a staggered salute of heavy guns, then the winning motif. */
   private victorySalute(ctx: AudioContext, now: number): void {
-    this.scheduleVictoryVolley(ctx, now, 1)
+    this.prepareVictory(now)
+    this.scheduleVictoryVolley(ctx, now, 1, this.victory ?? undefined)
     this.fanfare(
       ctx,
       now + VICTORY_VOLLEY_OFFSETS[VICTORY_VOLLEY_OFFSETS.length - 1] + 1.2,
       [523.25, 659.25, 783.99, 1046.5],
       0.16,
+      this.victory ?? undefined,
     )
   }
 
@@ -446,13 +501,14 @@ class SoundPlayer {
     ctx: AudioContext,
     now: number,
     scale: number,
+    destination?: AudioNode,
   ): void {
     VICTORY_VOLLEY_OFFSETS.forEach((offset, index) => {
       const shotScale = [0.72, 0.62, 0.7, 0.58, 0.66][index] * scale
       if (index % 2 === 0) {
-        this.cannon(ctx, now + offset, shotScale)
+        this.cannon(ctx, now + offset, shotScale, destination)
       } else {
-        this.detonation(ctx, now + offset, shotScale)
+        this.detonation(ctx, now + offset, shotScale, destination)
       }
     })
   }

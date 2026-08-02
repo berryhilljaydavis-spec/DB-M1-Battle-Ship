@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { drawSinkingScene } from '../ocean/sinking'
+import { soundPlayer } from '../sound/player'
 import { VictoryCannons } from './VictoryCannons'
 
 const MAX_PIXEL_RATIO = 2
@@ -35,6 +36,7 @@ export function VictoryScene({
   useEffect(() => {
     return () => {
       if (shakeTimer.current !== null) window.clearTimeout(shakeTimer.current)
+      soundPlayer.stopVictory()
     }
   }, [])
 
