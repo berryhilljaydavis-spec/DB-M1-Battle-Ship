@@ -39,7 +39,7 @@ export function VictoryCannons({ onShot }: VictoryCannonsProps) {
       onShot?.(strength)
     }
     const schedule = () => {
-      timers.length = 0
+      timers.splice(0).forEach(clearTimeout)
       const currentVolley = volley
       VICTORY_VOLLEY_OFFSETS.forEach((offset, index) => {
         timers.push(
