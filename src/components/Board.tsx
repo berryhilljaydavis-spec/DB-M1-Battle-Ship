@@ -3,6 +3,7 @@ import type { Board as BoardModel, Coord } from '../game/types'
 import { Cell } from './Cell'
 import { FleetCrest } from './Insignia'
 import { isShotAllowed } from '../game/board'
+import type { Team } from '../game/teams'
 
 export interface BoardPlacement {
   /** Cells of the ship currently picked up. */
@@ -23,6 +24,7 @@ export interface BoardProps {
   placement?: BoardPlacement
   side?: BoardSide
   subtitle?: string
+  team?: Team
 }
 
 export function Board({
@@ -34,15 +36,21 @@ export function Board({
   placement,
   side = 'enemy',
   subtitle,
+  team,
 }: BoardProps) {
   return (
     <section className={`board board--${side}`} aria-label={title}>
       <header className="board__header">
         <FleetCrest side={side} />
         <span className="board__badge">
-          {side === 'enemy' ? 'Enemy' : 'You'}
+          {team ? team.abbr : side === 'enemy' ? 'Enemy' : 'You'}
         </span>
         <h2 className="board__title">{title}</h2>
+        {team && (
+          <p className="board__team">
+            {team.school} {team.nickname}
+          </p>
+        )}
         {subtitle && <p className="board__subtitle">{subtitle}</p>}
       </header>
       <div className="board__grid">
