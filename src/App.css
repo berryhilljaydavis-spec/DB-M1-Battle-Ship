@@ -711,6 +711,7 @@ body {
 .cannons__turret--left { left: -1rem; }
 .cannons__turret--right {
   right: -1rem;
+  transform: scaleX(-1);
   animation-name: cannon-arrive-right;
 }
 .cannons__turret--upper { top: 25%; animation-delay: 100ms; }

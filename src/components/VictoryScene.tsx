@@ -33,6 +33,12 @@ export function VictoryScene({
   }, [])
 
   useEffect(() => {
+    return () => {
+      if (shakeTimer.current !== null) window.clearTimeout(shakeTimer.current)
+    }
+  }, [])
+
+  useEffect(() => {
     const reduceMotion =
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -67,7 +73,6 @@ export function VictoryScene({
     return () => {
       window.removeEventListener('resize', resize)
       if (frame) window.cancelAnimationFrame(frame)
-      if (shakeTimer.current !== null) window.clearTimeout(shakeTimer.current)
     }
   }, [])
 
