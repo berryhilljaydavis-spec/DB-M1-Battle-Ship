@@ -33,7 +33,7 @@ export function TeamSelect({ onConfirm, onBack }: TeamSelectProps) {
                 aria-pressed={selected}
                 onClick={() => setPicked(team)}
               >
-                <span className="team__abbr">{team.abbr}</span>
+                <img className="team__logo" src={team.logo} alt="" />
                 <span className="team__school">{team.school}</span>
                 <span className="team__nickname">{team.nickname}</span>
               </button>

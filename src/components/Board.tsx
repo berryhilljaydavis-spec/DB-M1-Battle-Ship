@@ -41,9 +41,13 @@ export function Board({
   return (
     <section className={`board board--${side}`} aria-label={title}>
       <header className="board__header">
-        <FleetCrest side={side} />
+        {team ? (
+          <img className="board__logo" src={team.logo} alt="" />
+        ) : (
+          <FleetCrest side={side} />
+        )}
         <span className="board__badge">
-          {team ? team.abbr : side === 'enemy' ? 'Enemy' : 'You'}
+          {side === 'enemy' ? 'Enemy' : 'You'}
         </span>
         <div className="board__heading">
           <h2 className="board__title">{title}</h2>

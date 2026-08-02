@@ -3,6 +3,8 @@ export interface Team {
   school: string
   nickname: string
   abbr: string
+  /** Logo served from `public/logos`. */
+  logo: string
   /** Light shade used for text, crests and outlines. */
   accent: string
   /** Deep shade used for card and panel fills. */
@@ -17,6 +19,7 @@ export const TEAMS: Team[] = [
     school: 'University of Michigan',
     nickname: 'Wolverines',
     abbr: 'MICH',
+    logo: '/logos/michigan.png',
     accent: '#ffcb05',
     primary: '#00274c',
     line: 'rgba(255, 203, 5, 0.55)',
@@ -27,6 +30,7 @@ export const TEAMS: Team[] = [
     school: 'Wesleyan University',
     nickname: 'Cardinals',
     abbr: 'WES',
+    logo: '/logos/wesleyan.png',
     accent: '#ff8a8a',
     primary: '#8b1a1a',
     line: 'rgba(255, 138, 138, 0.5)',
@@ -37,6 +41,7 @@ export const TEAMS: Team[] = [
     school: 'University of Kentucky',
     nickname: 'Wildcats',
     abbr: 'UK',
+    logo: '/logos/kentucky.png',
     accent: '#8fbaff',
     primary: '#0033a0',
     line: 'rgba(143, 186, 255, 0.5)',
@@ -47,6 +52,7 @@ export const TEAMS: Team[] = [
     school: 'University of Texas',
     nickname: 'Longhorns',
     abbr: 'TEX',
+    logo: '/logos/texas.png',
     accent: '#ff9a4d',
     primary: '#bf5700',
     line: 'rgba(255, 154, 77, 0.5)',
