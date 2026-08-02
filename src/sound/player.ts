@@ -78,7 +78,12 @@ class SoundPlayer {
 
   setMuted(muted: boolean): void {
     this.muted = muted
-    if (muted) this.stopMusic()
+    if (muted) {
+      this.stopMusic()
+      this.stopVictory()
+    } else {
+      this.resumeVictory()
+    }
   }
 
   isMuted(): boolean {
