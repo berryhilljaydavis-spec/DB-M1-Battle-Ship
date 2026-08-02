@@ -4,7 +4,7 @@ import {
   soundPlayer,
 } from '../sound/player'
 
-const VOLLEY_INTERVAL = 5600
+const VOLLEY_INTERVAL = 13000
 
 interface Shot {
   id: number

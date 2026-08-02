@@ -4,7 +4,7 @@ import { VICTORY_VOLLEY_OFFSETS, soundPlayer } from '../sound/player'
 import { VictoryCannons } from './VictoryCannons'
 
 vi.mock('../sound/player', () => ({
-  VICTORY_VOLLEY_OFFSETS: [0, 0.36, 0.73, 1.13, 1.56],
+  VICTORY_VOLLEY_OFFSETS: [0, 1.4, 2.9, 4.5, 6.2],
   soundPlayer: {
     playVictoryVolley: vi.fn(),
   },

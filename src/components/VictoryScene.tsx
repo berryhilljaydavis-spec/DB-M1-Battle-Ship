@@ -28,7 +28,7 @@ export function VictoryScene({
     if (shakeTimer.current !== null) window.clearTimeout(shakeTimer.current)
     shakeTimer.current = window.setTimeout(
       () => setShaking(false),
-      220 + strength * 100,
+      360 + strength * 160,
     )
   }, [])
 

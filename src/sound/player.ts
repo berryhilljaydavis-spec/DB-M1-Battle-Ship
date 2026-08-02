@@ -44,7 +44,7 @@ function impulseResponse(ctx: BaseAudioContext, seconds: number): AudioBuffer {
 const RETRIGGER_GAP = 0.07
 /** Effects allowed to overlap before new ones are dropped. */
 const MAX_VOICES = 4
-export const VICTORY_VOLLEY_OFFSETS = [0, 0.36, 0.73, 1.13, 1.56] as const
+export const VICTORY_VOLLEY_OFFSETS = [0, 1.4, 2.9, 4.5, 6.2] as const
 
 /** Soft-clipping curve so heavy layers saturate instead of digitally clipping. */
 function saturationCurve(): Float32Array<ArrayBuffer> {
@@ -434,7 +434,12 @@ class SoundPlayer {
   /** Victory: a staggered salute of heavy guns, then the winning motif. */
   private victorySalute(ctx: AudioContext, now: number): void {
     this.scheduleVictoryVolley(ctx, now, 1)
-    this.fanfare(ctx, now + 1.4, [523.25, 659.25, 783.99, 1046.5], 0.16)
+    this.fanfare(
+      ctx,
+      now + VICTORY_VOLLEY_OFFSETS[VICTORY_VOLLEY_OFFSETS.length - 1] + 1.2,
+      [523.25, 659.25, 783.99, 1046.5],
+      0.16,
+    )
   }
 
   private scheduleVictoryVolley(
