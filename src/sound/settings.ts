@@ -72,11 +72,13 @@ export const EFFECT_OPTIONS: AudioOption<EffectChoice>[] = [
   { id: 'off', label: 'Off', description: 'No combat sound effects.' },
 ]
 
+// Both volumes default to full so an untouched install sounds exactly as it
+// did before the panel existed.
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   musicTrack: 'solemn-march',
   effectPack: 'heavy-naval',
-  musicVolume: 0.6,
-  effectsVolume: 0.9,
+  musicVolume: 1,
+  effectsVolume: 1,
 }
 
 export const AUDIO_SETTINGS_STORAGE_KEY = 'battleship:audio-settings'

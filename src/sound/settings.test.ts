@@ -131,3 +131,10 @@ describe('parseAudioSettings', () => {
     expect(parsed.effectsVolume).toBe(0)
   })
 })
+
+describe('default volumes', () => {
+  it('starts at full so the stock mix is unchanged', () => {
+    expect(DEFAULT_AUDIO_SETTINGS.musicVolume).toBe(1)
+    expect(DEFAULT_AUDIO_SETTINGS.effectsVolume).toBe(1)
+  })
+})

@@ -110,7 +110,7 @@ describe('AudioControls', () => {
     expect(screen.getByText('60%')).toBeInTheDocument()
 
     const effects = screen.getByRole('slider', { name: /Effects volume/ })
-    expect(effects).toHaveValue('90')
+    expect(effects).toHaveValue('100')
     fireEvent.change(effects, { target: { value: '40' } })
     expect(onChange).toHaveBeenCalledWith({ effectsVolume: 0.4 })
   })
