@@ -5,6 +5,7 @@ import {
   cellIndexInShip,
   findShipAt,
   moveShip,
+  orientShip,
   rotateShip,
   shipOrientation,
 } from './placement'
@@ -133,5 +134,32 @@ describe('rotateShip', () => {
       'horizontal',
     )
     expect(rotateShip(board, 'Cruiser')).toBeNull()
+  })
+})
+
+describe('orientShip', () => {
+  it('turns a ship to the requested orientation', () => {
+    const board = placeShip(
+      createEmptyBoard(),
+      cruiser,
+      { row: 4, col: 4 },
+      'horizontal',
+    )
+    const turned = orientShip(board, 'Cruiser', 'vertical')
+    expect(shipOrientation(turned!.ships[0])).toBe('vertical')
+  })
+
+  it('leaves a ship untouched when it already faces that way', () => {
+    const board = placeShip(
+      createEmptyBoard(),
+      cruiser,
+      { row: 4, col: 4 },
+      'horizontal',
+    )
+    expect(orientShip(board, 'Cruiser', 'horizontal')).toBe(board)
+  })
+
+  it('returns null for an unknown ship', () => {
+    expect(orientShip(createEmptyBoard(), 'Cruiser', 'vertical')).toBeNull()
   })
 })

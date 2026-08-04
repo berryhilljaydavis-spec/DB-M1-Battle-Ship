@@ -69,6 +69,18 @@ export function moveShip(
   return rebuild(placed.ships, board.grid.length)
 }
 
+/** Turns a ship to face `orientation`, leaving it alone if it already does. */
+export function orientShip(
+  board: Board,
+  name: string,
+  orientation: Orientation,
+): Board | null {
+  const ship = board.ships.find((candidate) => candidate.name === name)
+  if (!ship) return null
+  if (shipOrientation(ship) === orientation) return board
+  return rotateShip(board, name)
+}
+
 /**
  * Flips a ship's orientation around its first cell, sliding it back along its
  * own length when the pivot would run off the board or into another ship.
