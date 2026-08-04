@@ -61,8 +61,14 @@ function NavalTurret({
           <stop offset="1" stopColor="#0b1219" />
         </linearGradient>
         <filter id={`turret-glow-${side}-${position}`} x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="5" />
+          <feGaussianBlur stdDeviation="7" />
         </filter>
+        <radialGradient id={`turret-blast-${side}-${position}`} cx="0.12" cy="0.5" r="0.9">
+          <stop offset="0" stopColor="#fff6de" />
+          <stop offset="0.3" stopColor="#ffd071" />
+          <stop offset="0.62" stopColor="#f08a26" stopOpacity="0.75" />
+          <stop offset="1" stopColor="#c0480f" stopOpacity="0" />
+        </radialGradient>
       </defs>
 
       <g className="cannons__deck">
@@ -106,21 +112,36 @@ function NavalTurret({
           <circle cx="142" cy="55" r="2" /><circle cx="142" cy="84" r="2" />
         </g>
 
-        <g className="cannons__muzzle">
-          <circle cx="218" cy="54.5" r="16" fill="#fff4a3" opacity="0.8" filter={`url(#turret-glow-${side}-${position})`} />
-          <path d="m218 33 5 14 13-9-8 13 15 4-15 4 8 14-13-9-5 15-5-15-13 9 8-14-15-4 15-4-8-13 13 9Z" fill="#fff8c4" stroke="#ff9f35" strokeWidth="2" />
-          <circle cx="218" cy="54.5" r="8" fill="#fffbe0" />
-        </g>
-        <g className="cannons__muzzle cannons__muzzle--lower">
-          <circle cx="218" cy="76.5" r="16" fill="#fff4a3" opacity="0.8" filter={`url(#turret-glow-${side}-${position})`} />
-          <path d="m218 55 5 14 13-9-8 13 15 4-15 4 8 14-13-9-5 15-5-15-13 9 8-14-15-4 15-4-8-13 13 9Z" fill="#fff8c4" stroke="#ff9f35" strokeWidth="2" />
-          <circle cx="218" cy="76.5" r="8" fill="#fffbe0" />
-        </g>
+        {[54.5, 76.5].map((cy, index) => (
+          <g
+            key={cy}
+            className={`cannons__muzzle${
+              index ? ' cannons__muzzle--lower' : ''
+            }`}
+          >
+            {/* Blast cone thrown forward out of the barrel, not a starburst. */}
+            <path
+              d={`M 216 ${cy - 7} C 244 ${cy - 15} 264 ${cy - 9} 286 ${cy} C 264 ${
+                cy + 9
+              } 244 ${cy + 15} 216 ${cy + 7} Z`}
+              fill={`url(#turret-blast-${side}-${position})`}
+            />
+            <ellipse
+              cx="224"
+              cy={cy}
+              rx="14"
+              ry="8"
+              fill="#fff3cf"
+              opacity="0.85"
+              filter={`url(#turret-glow-${side}-${position})`}
+            />
+          </g>
+        ))}
         <g className="cannons__smoke-cloud">
-          <circle cx="204" cy="48" r="13" />
-          <circle cx="214" cy="59" r="15" />
-          <circle cx="201" cy="69" r="12" />
-          <circle cx="214" cy="81" r="14" />
+          <circle cx="232" cy="52" r="15" />
+          <circle cx="248" cy="62" r="18" />
+          <circle cx="228" cy="74" r="14" />
+          <circle cx="250" cy="84" r="16" />
         </g>
       </g>
     </svg>
