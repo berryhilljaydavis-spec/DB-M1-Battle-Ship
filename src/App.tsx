@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Board } from './components/Board'
 import type { BoardPlacement } from './components/Board'
+import { Credit } from './components/Credit'
 import { FleetDestruction } from './components/FleetDestruction'
 import { FleetStatus } from './components/FleetStatus'
 import { OceanCanvas } from './components/OceanCanvas'
@@ -121,6 +122,7 @@ export function App() {
         <OceanCanvas />
         <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
         <StartMenu onStart={leaveMenu} />
+        <Credit />
       </main>
     )
   }
@@ -131,6 +133,7 @@ export function App() {
         <OceanCanvas />
         <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
         <TeamSelect onConfirm={chooseTeam} onBack={openMenu} />
+        <Credit />
       </main>
     )
   }
@@ -145,6 +148,7 @@ export function App() {
           onMenu={openMenu}
           onShowBoards={() => setShowBoards(true)}
         />
+        <Credit />
       </main>
     )
   }
@@ -227,6 +231,8 @@ export function App() {
         </section>
         )}
       </div>
+
+      <Credit />
     </main>
   )
 }
