@@ -10,6 +10,7 @@ import { SoundToggle } from './components/SoundToggle'
 import { StartMenu } from './components/StartMenu'
 import { TeamSelect } from './components/TeamSelect'
 import { VictoryScene } from './components/VictoryScene'
+import { DefeatScene } from './components/DefeatScene'
 import { StatusPanel } from './components/StatusPanel'
 import { useBattleship } from './hooks/useBattleship'
 import { findShipAt } from './game/placement'
@@ -134,11 +135,12 @@ export function App() {
     )
   }
 
-  if (humanWon && !showBoards) {
+  if (isOver && !showBoards) {
+    const Scene = humanWon ? VictoryScene : DefeatScene
     return (
       <main className="app app--cutscene">
         <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
-        <VictoryScene
+        <Scene
           onPlayAgain={playAgain}
           onMenu={openMenu}
           onShowBoards={() => setShowBoards(true)}

@@ -166,6 +166,56 @@ describe('App', () => {
       hookSpy.mockRestore()
     }
   })
+
+  it('cuts to the defeat scene when the AI wins', async () => {
+    const game = createGame(() => 0.1)
+    const defeat: GameState = {
+      ...game,
+      humanBoard: {
+        ...game.humanBoard,
+        grid: game.humanBoard.grid.map((row) =>
+          row.map((cell) => (cell === 'ship' ? 'hit' : cell)),
+        ),
+        ships: game.humanBoard.ships.map((ship) => ({
+          ...ship,
+          hits: ship.size,
+        })),
+      },
+      phase: 'game-over',
+      winner: 'ai',
+    }
+    const hookSpy = vi
+      .spyOn(battleshipHook, 'useBattleship')
+      .mockImplementation(() => ({
+        state: defeat,
+        selection: null,
+        fireAt: () => undefined,
+        placeAt: () => undefined,
+        grabAt: () => undefined,
+        selectShip: () => undefined,
+        orientSelection: () => undefined,
+        rotateSelection: () => undefined,
+        randomizeFleet: () => undefined,
+        startBattle: () => undefined,
+        restart: () => undefined,
+      }))
+
+    try {
+      render(<App />)
+      await enterGame()
+
+      expect(screen.getByLabelText('Defeat')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Defeat' })).toBeInTheDocument()
+      expect(screen.queryByLabelText('Your fleet')).not.toBeInTheDocument()
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Review boards' }),
+      )
+      expect(screen.getByLabelText('Your fleet')).toBeInTheDocument()
+    } finally {
+      hookSpy.mockRestore()
+    }
+  })
 })
 
 describe('placement phase', () => {
