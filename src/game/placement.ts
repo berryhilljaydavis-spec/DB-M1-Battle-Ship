@@ -81,9 +81,30 @@ export function orientShip(
   return rotateShip(board, name)
 }
 
+function center(cells: Coord[]): { row: number; col: number } {
+  const last = cells[cells.length - 1]
+  return {
+    row: (cells[0].row + last.row) / 2,
+    col: (cells[0].col + last.col) / 2,
+  }
+}
+
+function startCells(
+  start: Coord,
+  size: number,
+  orientation: Orientation,
+): Coord[] {
+  return Array.from({ length: size }, (_, index) =>
+    orientation === 'horizontal'
+      ? { row: start.row, col: start.col + index }
+      : { row: start.row + index, col: start.col },
+  )
+}
+
 /**
- * Flips a ship's orientation around its first cell, sliding it back along its
- * own length when the pivot would run off the board or into another ship.
+ * Turns a ship to its other facing, pivoting around its centre and falling
+ * back to the nearest square that fits, so a ship by an edge or wedged
+ * against a neighbour still turns instead of refusing to move.
  */
 export function rotateShip(board: Board, name: string): Board | null {
   const ship = board.ships.find((candidate) => candidate.name === name)
@@ -91,13 +112,24 @@ export function rotateShip(board: Board, name: string): Board | null {
 
   const next: Orientation =
     shipOrientation(ship) === 'horizontal' ? 'vertical' : 'horizontal'
-  const head = ship.cells[0]
+  const size = board.grid.length
+  const from = center(ship.cells)
 
-  for (let shift = 0; shift < ship.size; shift++) {
-    const start =
-      next === 'vertical'
-        ? { row: head.row - shift, col: head.col }
-        : { row: head.row, col: head.col - shift }
+  const drift = (start: Coord) => {
+    const to = center(startCells(start, ship.size, next))
+    return (to.row - from.row) ** 2 + (to.col - from.col) ** 2
+  }
+
+  const candidates: Coord[] = []
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const start = { row, col }
+      if (drift(start) <= ship.size ** 2) candidates.push(start)
+    }
+  }
+  candidates.sort((a, b) => drift(a) - drift(b))
+
+  for (const start of candidates) {
     const moved = moveShip(board, name, start, next)
     if (moved) return moved
   }

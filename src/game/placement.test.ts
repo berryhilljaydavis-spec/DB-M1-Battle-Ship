@@ -98,12 +98,32 @@ describe('moveShip', () => {
 })
 
 describe('rotateShip', () => {
-  it('flips the orientation in place', () => {
+  it('flips the orientation around the ship centre', () => {
     const rotated = rotateShip(boardWithCruiser(), 'Cruiser')
     expect(rotated).not.toBeNull()
     expect(shipOrientation(rotated!.ships[0])).toBe('vertical')
-    expect(rotated!.grid[4][4]).toBe('ship')
-    expect(rotated!.grid[6][4]).toBe('ship')
+    expect(rotated!.ships[0].cells).toEqual([
+      { row: 3, col: 5 },
+      { row: 4, col: 5 },
+      { row: 5, col: 5 },
+    ])
+  })
+
+  it('steps aside when the centred turn is blocked', () => {
+    let board = boardWithCruiser()
+    board = placeShip(board, destroyer, { row: 2, col: 5 }, 'vertical')
+    const rotated = rotateShip(board, 'Cruiser')
+    expect(rotated).not.toBeNull()
+
+    const turned = rotated!.ships.find((ship) => ship.name === 'Cruiser')!
+    expect(shipOrientation(turned)).toBe('vertical')
+    expect(turned.cells).not.toContainEqual({ row: 3, col: 5 })
+    expect(
+      rotated!.ships.find((ship) => ship.name === 'Destroyer')!.cells,
+    ).toEqual([
+      { row: 2, col: 5 },
+      { row: 3, col: 5 },
+    ])
   })
 
   it('slides back into bounds when the pivot would overflow', () => {
@@ -119,17 +139,22 @@ describe('rotateShip', () => {
     expect(rotated!.ships[0].cells.map((c) => c.row)).toEqual([7, 8, 9])
   })
 
-  it('returns null when there is no room to rotate', () => {
+  it('returns null when no nearby square can hold the turned ship', () => {
     let board = placeShip(
-      createEmptyBoard(),
+      createEmptyBoard(3),
       cruiser,
       { row: 0, col: 0 },
       'horizontal',
     )
-    board = placeShip(board, destroyer, { row: 1, col: 0 }, 'horizontal')
     board = placeShip(
       board,
       { name: 'Submarine', size: 3 },
+      { row: 1, col: 0 },
+      'horizontal',
+    )
+    board = placeShip(
+      board,
+      { name: 'Battleship', size: 3 },
       { row: 2, col: 0 },
       'horizontal',
     )
