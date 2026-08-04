@@ -53,11 +53,17 @@ body {
   backdrop-filter: blur(16px) saturate(1.1);
 }
 
-.sound-toggle {
+.audio-controls {
   position: fixed;
   top: 1rem;
   right: 1rem;
   z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.sound-toggle {
   width: 2.6rem;
   height: 2.6rem;
   padding: 0;
@@ -82,6 +88,114 @@ body {
 .sound-toggle:focus-visible {
   outline: 2px solid var(--miss);
   outline-offset: 2px;
+}
+
+.audio-panel {
+  position: absolute;
+  top: 3.25rem;
+  right: 0;
+  width: min(20rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border: 1px solid var(--panel-line);
+  border-radius: var(--panel-radius);
+  background: var(--panel);
+  box-shadow: var(--panel-shadow), var(--panel-inset);
+  backdrop-filter: blur(16px) saturate(1.1);
+}
+
+.audio-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.audio-panel__header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.audio-panel__close {
+  padding: 0.1rem 0.45rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--panel-line);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.audio-panel__note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--miss);
+}
+
+.audio-panel__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.5rem 0 0;
+  border: none;
+  border-top: 1px solid var(--panel-line);
+}
+
+.audio-panel__group legend {
+  padding: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.audio-panel__option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.05rem 0.5rem;
+  align-items: baseline;
+  cursor: pointer;
+}
+
+.audio-panel__option input {
+  margin: 0;
+  accent-color: var(--miss);
+}
+
+.audio-panel__label {
+  font-size: 0.9rem;
+}
+
+.audio-panel__hint {
+  grid-column: 2;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  opacity: 0.65;
+}
+
+.audio-panel__slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.audio-panel__slider label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.audio-panel__slider input {
+  width: 100%;
+  accent-color: var(--miss);
 }
 
 .app__header .emblem {

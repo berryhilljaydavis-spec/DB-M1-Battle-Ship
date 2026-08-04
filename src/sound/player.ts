@@ -1,7 +1,16 @@
 import type { SoundName } from './events'
-import { MARCH_BPM, MARCH_LOOP_BEATS, marchNotes } from './march'
+import { MUSIC_TRACKS } from './march'
+import type {
+  EffectChoice,
+  EffectPackParams,
+  MusicChoice,
+} from './settings'
+import { DEFAULT_AUDIO_SETTINGS, effectPackParams } from './settings'
 
 type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle'
+
+/** Which part of an effect a noise layer plays, for per-pack scaling. */
+type NoiseRole = 'transient' | 'body'
 
 interface WebkitWindow {
   webkitAudioContext?: typeof AudioContext
@@ -17,6 +26,7 @@ interface NoiseOptions {
   endFreq?: number
   q?: number
   destination?: AudioNode
+  role?: NoiseRole
 }
 
 function resolveAudioContext(): typeof AudioContext | null {
@@ -45,6 +55,10 @@ const RETRIGGER_GAP = 0.07
 /** Effects allowed to overlap before new ones are dropped. */
 const MAX_VOICES = 4
 export const VICTORY_VOLLEY_OFFSETS = [0, 1.4, 2.9, 4.5, 6.2] as const
+/** Level the music bus swells to while a track plays. */
+const MUSIC_BUS_GAIN = 0.4
+/** Floor on how far a pack may shorten a sub thump, so it stays audible. */
+const MIN_SUB_SCALE = 0.25
 
 /** Soft-clipping curve so heavy layers saturate instead of digitally clipping. */
 function saturationCurve(): Float32Array<ArrayBuffer> {
@@ -71,10 +85,60 @@ class SoundPlayer {
   private reverb: GainNode | null = null
   private victory: GainNode | null = null
   private music: GainNode | null = null
+  private effectsVolume: GainNode | null = null
+  private musicVolume: GainNode | null = null
+  private trackGain: GainNode | null = null
   private muted = false
   private lastPlayed = new Map<SoundName, number>()
   private activeUntil: number[] = []
   private musicTimer: ReturnType<typeof setTimeout> | null = null
+  private packChoice: EffectChoice = DEFAULT_AUDIO_SETTINGS.effectPack
+  private pack: EffectPackParams = effectPackParams(
+    DEFAULT_AUDIO_SETTINGS.effectPack === 'off'
+      ? 'heavy-naval'
+      : DEFAULT_AUDIO_SETTINGS.effectPack,
+  )
+  private trackChoice: MusicChoice = DEFAULT_AUDIO_SETTINGS.musicTrack
+  private levels = {
+    music: DEFAULT_AUDIO_SETTINGS.musicVolume,
+    effects: DEFAULT_AUDIO_SETTINGS.effectsVolume,
+  }
+
+  /** Selects the effect-pack parameter set used by every future effect. */
+  setEffectPack(choice: EffectChoice): void {
+    this.packChoice = choice
+    if (choice !== 'off') this.pack = effectPackParams(choice)
+    this.applyReverbSend()
+  }
+
+  /**
+   * Selects the music arrangement. If a track is already playing it crosses
+   * over to the new one immediately instead of waiting for the loop to end.
+   */
+  setMusicTrack(choice: MusicChoice): void {
+    if (choice === this.trackChoice) return
+    const wasPlaying = this.musicTimer !== null || this.trackGain !== null
+    this.trackChoice = choice
+    if (!wasPlaying) return
+
+    this.clearMusicTimer()
+    this.fadeOutTrack(0.35)
+    if (choice === 'off') {
+      this.stopMusic()
+      return
+    }
+    this.startMusic()
+  }
+
+  /** Applies the 0-1 music and effects volumes to their gain buses. */
+  setVolumes(music: number, effects: number): void {
+    this.levels = { music, effects }
+    const ctx = this.context
+    if (!ctx) return
+    const now = ctx.currentTime
+    this.musicVolume?.gain.setTargetAtTime(music, now, 0.05)
+    this.effectsVolume?.gain.setTargetAtTime(effects, now, 0.05)
+  }
 
   setMuted(muted: boolean): void {
     this.muted = muted
@@ -91,7 +155,7 @@ class SoundPlayer {
   }
 
   play(name: SoundName): void {
-    if (this.muted) return
+    if (this.muted || this.packChoice === 'off') return
     const ctx = this.ensureContext()
     if (!ctx) return
     if (ctx.state === 'suspended') void ctx.resume()
@@ -120,8 +184,24 @@ class SoundPlayer {
     }
   }
 
+  private clearMusicTimer(): void {
+    if (this.musicTimer === null) return
+    clearTimeout(this.musicTimer)
+    this.musicTimer = null
+  }
+
+  private applyReverbSend(): void {
+    const ctx = this.context
+    if (!ctx || !this.reverb) return
+    this.reverb.gain.setTargetAtTime(
+      0.5 * this.pack.reverbSend,
+      ctx.currentTime,
+      0.02,
+    )
+  }
+
   playVictoryVolley(scale = 0.8): void {
-    if (this.muted) return
+    if (this.muted || this.packChoice === 'off') return
     const ctx = this.ensureContext()
     if (!ctx) return
     if (ctx.state === 'suspended') void ctx.resume()
@@ -176,34 +256,51 @@ class SoundPlayer {
 
     master.connect(shaper).connect(compressor).connect(ctx.destination)
 
+    // Player-controlled volume buses, kept separate from the ducking gains.
+    const effectsVolume = ctx.createGain()
+    effectsVolume.gain.value = this.levels.effects
+    effectsVolume.connect(master)
+
+    const musicVolume = ctx.createGain()
+    musicVolume.gain.value = this.levels.music
+    musicVolume.connect(master)
+
     // Effects bus, ducked while several blasts overlap.
     const effects = ctx.createGain()
     effects.gain.value = 1
-    effects.connect(master)
+    effects.connect(effectsVolume)
 
     const victory = ctx.createGain()
     victory.gain.value = 1
-    victory.connect(master)
+    victory.connect(effectsVolume)
 
     // Open-air tail. A convolved noise burst decays smoothly, unlike a
     // feedback delay, which repeats the blast and sounds like a bouncing ball.
     const reverb = ctx.createGain()
-    reverb.gain.value = 0.5
+    reverb.gain.value = 0.5 * this.pack.reverbSend
     const convolver = ctx.createConvolver()
     convolver.buffer = impulseResponse(ctx, 1.9)
-    reverb.connect(convolver).connect(master)
+    reverb.connect(convolver).connect(effectsVolume)
     victory.connect(reverb)
 
     const music = ctx.createGain()
     music.gain.value = 0
-    music.connect(master)
+    music.connect(musicVolume)
+    // The music tail has its own convolver so the effects volume and the
+    // effect pack's reverb setting cannot alter it.
+    const musicReverb = ctx.createConvolver()
+    musicReverb.buffer = impulseResponse(ctx, 1.9)
     const musicReverbSend = ctx.createGain()
-    musicReverbSend.gain.value = 0.22
-    music.connect(musicReverbSend).connect(reverb)
+    // 0.22 into what used to be a 0.5 shared reverb bus, so the wet/dry ratio
+    // of the march is unchanged by the split.
+    musicReverbSend.gain.value = 0.22 * 0.5
+    music.connect(musicReverbSend).connect(musicReverb).connect(musicVolume)
 
     this.context = ctx
     this.master = master
     this.effects = effects
+    this.effectsVolume = effectsVolume
+    this.musicVolume = musicVolume
     this.reverb = reverb
     this.victory = victory
     this.music = music
@@ -239,6 +336,14 @@ class SoundPlayer {
     )
   }
 
+  /**
+   * Whether a layer belongs to the effects side of the mixer, and so should be
+   * reshaped by the selected pack. Music voices pass their own destination.
+   */
+  private isEffectBus(destination?: AudioNode): boolean {
+    return destination === undefined || destination === this.victory
+  }
+
   private tone(
     ctx: AudioContext,
     start: number,
@@ -250,10 +355,13 @@ class SoundPlayer {
   ): void {
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
+    const level = this.isEffectBus(destination)
+      ? peak * this.pack.gainScale
+      : peak
     osc.type = type
     osc.frequency.setValueAtTime(freq, start)
     gain.gain.setValueAtTime(0.0001, start)
-    gain.gain.exponentialRampToValueAtTime(peak, start + 0.01)
+    gain.gain.exponentialRampToValueAtTime(level, start + 0.01)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
     osc.connect(gain).connect(destination ?? this.out())
     osc.start(start)
@@ -262,7 +370,17 @@ class SoundPlayer {
 
   /** Filtered noise burst — the body of every blast, splash and crackle. */
   private noise(ctx: AudioContext, options: NoiseOptions): void {
-    const { start, duration, peak, filterType, startFreq } = options
+    const { start, filterType, startFreq } = options
+    const scaled = this.isEffectBus(options.destination)
+    const duration =
+      scaled && options.role !== 'transient'
+        ? Math.max(0.02, options.duration * this.pack.tailScale)
+        : options.duration
+    const peak = scaled
+      ? options.peak *
+        this.pack.gainScale *
+        (options.role === 'transient' ? this.pack.transientScale : 1)
+      : options.peak
     const frames = Math.max(1, Math.floor(ctx.sampleRate * duration))
     const buffer = ctx.createBuffer(1, frames, ctx.sampleRate)
     const data = buffer.getChannelData(0)
@@ -303,10 +421,15 @@ class SoundPlayer {
     start: number,
     from: number,
     to: number,
-    duration: number,
-    peak: number,
+    length: number,
+    level: number,
     destination?: AudioNode,
   ): void {
+    const scaled = this.isEffectBus(destination)
+    const duration = scaled
+      ? length * Math.max(this.pack.tailScale, MIN_SUB_SCALE)
+      : length
+    const peak = scaled ? level * this.pack.gainScale : level
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.type = 'sine'
@@ -340,6 +463,7 @@ class SoundPlayer {
       filterType: 'highpass',
       startFreq: 2200,
       destination,
+      role: 'transient',
     })
     this.noise(ctx, {
       start: now,
@@ -351,6 +475,7 @@ class SoundPlayer {
       destination,
     })
     this.sub(ctx, now, 120, 48, 0.5, 0.85 * scale, destination)
+    if (!this.pack.extraLayers) return
     // Rumble rolling away over the water.
     this.noise(ctx, {
       start: now + 0.12,
@@ -378,6 +503,7 @@ class SoundPlayer {
       filterType: 'highpass',
       startFreq: 3000,
       destination,
+      role: 'transient',
     })
     this.noise(ctx, {
       start,
@@ -389,6 +515,7 @@ class SoundPlayer {
       destination,
     })
     this.sub(ctx, start, 130, 42, 0.8 * scale, 1, destination)
+    if (!this.pack.extraLayers) return
     this.noise(ctx, {
       start,
       duration: 1.5 * scale,
@@ -426,6 +553,7 @@ class SoundPlayer {
     this.detonation(ctx, now, 1.3)
     this.detonation(ctx, now + 0.34, 0.9)
     this.detonation(ctx, now + 0.72, 1.1)
+    if (!this.pack.extraLayers) return
 
     const groan = ctx.createOscillator()
     const gain = ctx.createGain()
@@ -458,6 +586,7 @@ class SoundPlayer {
       endFreq: 500,
       q: 0.8,
     })
+    if (!this.pack.extraLayers) return
     this.noise(ctx, {
       start: start + 0.06,
       duration: 0.7,
@@ -480,7 +609,7 @@ class SoundPlayer {
         now + index * step,
         freq,
         step + 0.18,
-        'triangle',
+        this.pack.toneType,
         0.22,
         destination,
       )
@@ -530,12 +659,14 @@ class SoundPlayer {
     freq: number,
     duration: number,
   ): void {
-    this.tone(ctx, now, freq, duration, 'square', 0.12)
+    const length = duration * Math.max(this.pack.tailScale, 0.5)
+    this.tone(ctx, now, freq, length, 'square', 0.12)
   }
 
-  /** Starts the looping menu march. Safe to call repeatedly. */
+  /** Starts the selected looping track. Safe to call repeatedly. */
   startMusic(): void {
-    if (this.muted || this.musicTimer !== null) return
+    if (this.muted || this.trackChoice === 'off') return
+    if (this.musicTimer !== null) return
     const ctx = this.ensureContext()
     if (!ctx || !this.music) return
     if (ctx.state !== 'running') {
@@ -545,18 +676,40 @@ class SoundPlayer {
       return
     }
 
-    this.music.gain.cancelScheduledValues(ctx.currentTime)
-    this.music.gain.setValueAtTime(0.0001, ctx.currentTime)
-    this.music.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 1.2)
-    this.scheduleMusicLoop(ctx.currentTime + 0.15)
+    const now = ctx.currentTime
+    const level = Math.max(this.music.gain.value, 0.0001)
+    this.music.gain.cancelScheduledValues(now)
+    this.music.gain.setValueAtTime(level, now)
+    this.music.gain.linearRampToValueAtTime(MUSIC_BUS_GAIN, now + 1.2)
+
+    // Each pass of a track runs through its own gain node so switching tracks
+    // can fade the outgoing arrangement out while the new one fades in.
+    const trackGain = ctx.createGain()
+    trackGain.gain.value = 1
+    trackGain.connect(this.music)
+    this.trackGain = trackGain
+    this.scheduleMusicLoop(now + 0.15)
   }
 
-  /** Fades the menu march out and cancels further scheduling. */
+  /** Fades the outgoing arrangement out and releases its nodes. */
+  private fadeOutTrack(seconds: number): void {
+    const ctx = this.context
+    const gain = this.trackGain
+    if (!ctx || !gain) return
+    this.trackGain = null
+
+    const now = ctx.currentTime
+    gain.gain.cancelScheduledValues(now)
+    gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now)
+    gain.gain.linearRampToValueAtTime(0.0001, now + seconds)
+    // Long sustained notes may still be scheduled behind the fade.
+    setTimeout(() => gain.disconnect(), (seconds + 12) * 1000)
+  }
+
+  /** Fades the current track out and cancels further scheduling. */
   stopMusic(): void {
-    if (this.musicTimer !== null) {
-      clearTimeout(this.musicTimer)
-      this.musicTimer = null
-    }
+    this.clearMusicTimer()
+    this.fadeOutTrack(0.6)
     const ctx = this.context
     if (!ctx || !this.music) return
     const level = this.music.gain.value
@@ -568,11 +721,12 @@ class SoundPlayer {
   /** Schedules one pass of the loop, then queues the next before it ends. */
   private scheduleMusicLoop(startTime: number): void {
     const ctx = this.context
-    const bus = this.music
-    if (!ctx || !bus) return
+    const bus = this.trackGain
+    if (!ctx || !bus || this.trackChoice === 'off') return
+    const track = MUSIC_TRACKS[this.trackChoice]
 
-    const beat = 60 / MARCH_BPM
-    for (const note of marchNotes()) {
+    const beat = 60 / track.bpm
+    for (const note of track.notes()) {
       const at = startTime + note.beat * beat
       switch (note.voice) {
         case 'brass':
@@ -601,7 +755,7 @@ class SoundPlayer {
       }
     }
 
-    const nextStart = startTime + MARCH_LOOP_BEATS * beat
+    const nextStart = startTime + track.loopBeats * beat
     const delayMs = Math.max(0, (nextStart - ctx.currentTime - 0.25) * 1000)
     this.musicTimer = setTimeout(() => {
       this.musicTimer = null
