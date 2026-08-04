@@ -42,10 +42,10 @@ async function startBattle() {
 describe('start menu', () => {
   it('shows the menu first and enters placement on deploy', async () => {
     render(<App />)
-    expect(screen.queryByLabelText('Enemy waters')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Your fleet')).not.toBeInTheDocument()
 
     await enterGame()
-    expect(screen.getByLabelText('Enemy waters')).toBeInTheDocument()
+    expect(screen.getByLabelText('Your fleet')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Start battle' }),
     ).toBeInTheDocument()
@@ -108,11 +108,13 @@ describe('App', () => {
     expect(markedCells('Enemy waters')).toHaveLength(1)
 
     await userEvent.click(screen.getByRole('button', { name: 'New game' }))
-    expect(markedCells('Enemy waters')).toHaveLength(0)
     expect(markedCells('Your fleet')).toHaveLength(0)
     expect(
       screen.getByRole('button', { name: 'Start battle' }),
     ).toBeInTheDocument()
+
+    await startBattle()
+    expect(markedCells('Enemy waters')).toHaveLength(0)
   })
 
   it('returns to the victory scene after starting again from reviewed boards', async () => {
@@ -141,6 +143,8 @@ describe('App', () => {
           fireAt: () => undefined,
           placeAt: () => undefined,
           grabAt: () => undefined,
+          selectShip: () => undefined,
+          orientSelection: () => undefined,
           rotateSelection: () => undefined,
           randomizeFleet: () => undefined,
           startBattle: () => undefined,
@@ -165,11 +169,47 @@ describe('App', () => {
 })
 
 describe('placement phase', () => {
-  it('blocks firing until the battle starts', async () => {
+  it('hides the enemy board until the battle starts', async () => {
     await renderGame()
-    const enemy = within(screen.getByLabelText('Enemy waters'))
-    await userEvent.click(enemy.getAllByRole('button')[0])
-    expect(markedCells('Enemy waters')).toHaveLength(0)
+    expect(screen.queryByLabelText('Enemy waters')).not.toBeInTheDocument()
+
+    await startBattle()
+    expect(screen.getByLabelText('Enemy waters')).toBeInTheDocument()
+  })
+
+  it('places a ship picked from the roster', async () => {
+    await renderGame()
+    const own = within(screen.getByLabelText('Your fleet'))
+    const layout = () =>
+      shipCells('Your fleet')
+        .map((cell) => cell.getAttribute('aria-label'))
+        .join(',')
+
+    const before = layout()
+    await userEvent.click(screen.getByRole('button', { name: /Destroyer/ }))
+
+    const empties = own
+      .getAllByRole('button')
+      .filter((cell) => cell.getAttribute('aria-label')?.endsWith('empty'))
+    for (const target of empties) {
+      await userEvent.click(target)
+      if (layout() !== before) break
+    }
+
+    expect(layout()).not.toBe(before)
+    expect(shipCells('Your fleet')).toHaveLength(SHIP_CELLS)
+  })
+
+  it('shows the orientation of the ship picked from the roster', async () => {
+    await renderGame()
+    expect(screen.getByRole('button', { name: 'Vertical' })).toBeDisabled()
+
+    await userEvent.click(screen.getByRole('button', { name: /Cruiser/ }))
+    const pressed = ['Horizontal', 'Vertical'].map((name) =>
+      screen.getByRole('button', { name }).getAttribute('aria-pressed'),
+    )
+    expect(pressed).toContain('true')
+    expect(shipCells('Your fleet')).toHaveLength(SHIP_CELLS)
   })
 
   it('moves the selected ship to a free square', async () => {

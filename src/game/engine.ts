@@ -21,7 +21,7 @@ export function createGame(random: RandomFn = Math.random): GameState {
     aiBoard: placeFleetRandomly(undefined, undefined, random),
     phase: 'placement',
     winner: null,
-    log: ['Fleet at anchor. Drag your ships into position.'],
+    log: ['Fleet at anchor. Pick a ship, then place it on the board.'],
   }
 }
 

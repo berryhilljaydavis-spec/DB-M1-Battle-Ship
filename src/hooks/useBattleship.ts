@@ -11,10 +11,11 @@ import {
   cellIndexInShip,
   findShipAt,
   moveShip,
+  orientShip,
   rotateShip,
   shipOrientation,
 } from '../game/placement'
-import type { Coord } from '../game/types'
+import type { Coord, Orientation } from '../game/types'
 import { soundPlayer } from '../sound/player'
 
 export const AI_TURN_DELAY_MS = 600
@@ -32,6 +33,9 @@ export interface Battleship {
   /** Placement click: selects a ship, or drops the selected one at `coord`. */
   placeAt: (coord: Coord) => void
   grabAt: (coord: Coord) => void
+  /** Picks a ship from the roster, ready to be dropped on the board. */
+  selectShip: (name: string) => void
+  orientSelection: (orientation: Orientation) => void
   rotateSelection: () => void
   randomizeFleet: () => void
   startBattle: () => void
@@ -95,6 +99,27 @@ export function useBattleship(): Battleship {
     [isPlacing, humanBoard, selection, grabAt],
   )
 
+  const selectShip = useCallback(
+    (name: string) => {
+      if (!isPlacing) return
+      if (!humanBoard.ships.some((ship) => ship.name === name)) return
+      setSelection({ name, offset: 0 })
+    },
+    [isPlacing, humanBoard],
+  )
+
+  const orientSelection = useCallback(
+    (orientation: Orientation) => {
+      if (!isPlacing || !selection) return
+      const turned = orientShip(humanBoard, selection.name, orientation)
+      if (!turned || turned === humanBoard) return
+      soundPlayer.play('rotate')
+      setSelection({ name: selection.name, offset: 0 })
+      setState((current) => ({ ...current, humanBoard: turned }))
+    },
+    [isPlacing, humanBoard, selection],
+  )
+
   const rotateSelection = useCallback(() => {
     if (!isPlacing || !selection) return
     const rotated = rotateShip(humanBoard, selection.name)
@@ -136,6 +161,8 @@ export function useBattleship(): Battleship {
     fireAt,
     placeAt,
     grabAt,
+    selectShip,
+    orientSelection,
     rotateSelection,
     randomizeFleet,
     startBattle,

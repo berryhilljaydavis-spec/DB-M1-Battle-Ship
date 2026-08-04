@@ -2,7 +2,8 @@ import { COLUMN_LABELS } from '../game/constants'
 import type { Board as BoardModel, Coord } from '../game/types'
 import { Cell } from './Cell'
 import { FleetCrest } from './Insignia'
-import { isShotAllowed } from '../game/board'
+import { ShipHull } from './ShipHull'
+import { isShipSunk, isShotAllowed } from '../game/board'
 import type { Team } from '../game/teams'
 
 export interface BoardPlacement {
@@ -59,25 +60,39 @@ export function Board({
           {subtitle && <p className="board__subtitle">{subtitle}</p>}
         </div>
       </header>
-      <div className="board__grid">
-        <span className="board__corner" />
-        {COLUMN_LABELS.slice(0, board.grid.length).map((label) => (
-          <span key={label} className="board__label">
-            {label}
-          </span>
-        ))}
-        {board.grid.map((cells, row) => (
-          <FragmentRow
-            key={row}
-            row={row}
-            cells={cells}
-            board={board}
-            revealShips={revealShips}
-            interactive={interactive}
-            onFire={onFire}
-            placement={placement}
-          />
-        ))}
+      <div className="board__field">
+        {revealShips && (
+          <div className="board__hulls">
+            {board.ships.map((ship) => (
+              <ShipHull
+                key={ship.name}
+                ship={ship}
+                selected={placement?.isSelected(ship.cells[0])}
+                sunk={isShipSunk(ship)}
+              />
+            ))}
+          </div>
+        )}
+        <div className="board__grid">
+          <span className="board__corner" />
+          {COLUMN_LABELS.slice(0, board.grid.length).map((label) => (
+            <span key={label} className="board__label">
+              {label}
+            </span>
+          ))}
+          {board.grid.map((cells, row) => (
+            <FragmentRow
+              key={row}
+              row={row}
+              cells={cells}
+              board={board}
+              revealShips={revealShips}
+              interactive={interactive}
+              onFire={onFire}
+              placement={placement}
+            />
+          ))}
+        </div>
       </div>
     </section>
   )

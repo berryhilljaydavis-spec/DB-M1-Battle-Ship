@@ -27,6 +27,8 @@ export function App() {
     fireAt,
     placeAt,
     grabAt,
+    selectShip,
+    orientSelection,
     rotateSelection,
     randomizeFleet,
     startBattle,
@@ -160,16 +162,18 @@ export function App() {
 
       <StatusPanel state={state} onRestart={playAgain} onMenu={openMenu} />
 
-      {isPlacing && (
-        <PlacementControls
-          selectedShip={selection?.name ?? null}
-          onRotate={rotateSelection}
-          onRandomize={randomizeFleet}
-          onStart={startBattle}
-        />
-      )}
+      <div className={`app__boards${isPlacing ? ' app__boards--solo' : ''}`}>
+        {isPlacing && (
+          <PlacementControls
+            board={state.humanBoard}
+            selectedShip={selection?.name ?? null}
+            onSelectShip={selectShip}
+            onOrient={orientSelection}
+            onRandomize={randomizeFleet}
+            onStart={startBattle}
+          />
+        )}
 
-      <div className="app__boards">
         <section
           className={`side side--friendly${
             loser === 'friendly' ? ' side--destroyed' : ''
@@ -182,7 +186,7 @@ export function App() {
             side="friendly"
             subtitle={
               isPlacing
-                ? 'Defend — drag your ships, then start the battle'
+                ? 'Pick a ship, then click a square to position it'
                 : 'Defend — the AI fires here'
             }
             board={state.humanBoard}
@@ -199,6 +203,7 @@ export function App() {
           />
         </section>
 
+        {!isPlacing && (
         <section
           className={`side side--enemy${
             loser === 'enemy' ? ' side--destroyed' : ''
@@ -218,6 +223,7 @@ export function App() {
           />
           <FleetStatus title="Enemy fleet" side="enemy" board={state.aiBoard} />
         </section>
+        )}
       </div>
     </main>
   )
