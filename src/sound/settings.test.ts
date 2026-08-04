@@ -69,10 +69,15 @@ describe('clampVolume', () => {
     expect(clampVolume(42)).toBe(1)
   })
 
-  it('falls back to full volume for junk', () => {
+  it('falls back to full volume for junk instead of silence', () => {
     expect(clampVolume('loud')).toBe(1)
     expect(clampVolume(undefined)).toBe(1)
     expect(clampVolume(Number.NaN)).toBe(1)
+    // These all coerce to 0, which would silently mute the game.
+    expect(clampVolume(null)).toBe(1)
+    expect(clampVolume('')).toBe(1)
+    expect(clampVolume(false)).toBe(1)
+    expect(clampVolume([])).toBe(1)
   })
 })
 
@@ -121,6 +126,14 @@ describe('parseAudioSettings', () => {
       musicVolume: 0.1,
       effectsVolume: DEFAULT_AUDIO_SETTINGS.effectsVolume,
     })
+  })
+
+  it('does not mute the game for a null volume', () => {
+    const parsed = parseAudioSettings(
+      JSON.stringify({ musicVolume: null, effectsVolume: '' }),
+    )
+    expect(parsed.musicVolume).toBe(1)
+    expect(parsed.effectsVolume).toBe(1)
   })
 
   it('clamps out-of-range volumes', () => {

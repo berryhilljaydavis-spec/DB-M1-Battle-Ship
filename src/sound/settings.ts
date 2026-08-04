@@ -132,9 +132,10 @@ export function effectPackParams(id: EffectPackId): EffectPackParams {
 }
 
 export function clampVolume(value: unknown): number {
-  const numeric = typeof value === 'number' ? value : Number(value)
-  if (!Number.isFinite(numeric)) return 1
-  return Math.min(1, Math.max(0, numeric))
+  // Anything that is not a real number falls back to full volume: coercing
+  // would turn null, '' and false into a silent 0.
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 1
+  return Math.min(1, Math.max(0, value))
 }
 
 function isMusicChoice(value: unknown): value is MusicChoice {
