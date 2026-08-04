@@ -6,7 +6,7 @@ import { FleetStatus } from './components/FleetStatus'
 import { OceanCanvas } from './components/OceanCanvas'
 import { PlacementControls } from './components/PlacementControls'
 import { GameEmblem } from './components/Insignia'
-import { SoundToggle } from './components/SoundToggle'
+import { AudioControls } from './components/AudioControls'
 import { StartMenu } from './components/StartMenu'
 import { TeamSelect } from './components/TeamSelect'
 import { VictoryScene } from './components/VictoryScene'
@@ -15,6 +15,7 @@ import { useBattleship } from './hooks/useBattleship'
 import { findShipAt } from './game/placement'
 import { opposingTeam } from './game/teams'
 import type { Team } from './game/teams'
+import { useAudioSettings } from './sound/useAudioSettings'
 import { useGameSounds } from './sound/useGameSounds'
 import { useMenuMusic } from './sound/useMenuMusic'
 import { useSoundPreference } from './sound/useSoundPreference'
@@ -39,10 +40,22 @@ export function App() {
   )
   const [showBoards, setShowBoards] = useState(false)
   const [soundEnabled, toggleSound] = useSoundPreference()
+  const { settings: audio, update: updateAudio } = useAudioSettings()
   const isPlacing = state.phase === 'placement'
 
+  const audioControls = (
+    <AudioControls
+      enabled={soundEnabled}
+      onToggle={toggleSound}
+      settings={audio}
+      onChange={updateAudio}
+    />
+  )
+
   useGameSounds(state)
-  useMenuMusic((inMenu || !matchup) && soundEnabled)
+  useMenuMusic(
+    (inMenu || !matchup) && soundEnabled && audio.musicTrack !== 'off',
+  )
 
   const openMenu = useCallback(() => {
     restart()
@@ -116,7 +129,7 @@ export function App() {
     return (
       <main className="app app--menu">
         <OceanCanvas />
-        <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
+        {audioControls}
         <StartMenu onStart={leaveMenu} />
       </main>
     )
@@ -126,7 +139,7 @@ export function App() {
     return (
       <main className="app app--menu">
         <OceanCanvas />
-        <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
+        {audioControls}
         <TeamSelect onConfirm={chooseTeam} onBack={openMenu} />
       </main>
     )
@@ -135,7 +148,7 @@ export function App() {
   if (humanWon && !showBoards) {
     return (
       <main className="app app--cutscene">
-        <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
+        {audioControls}
         <VictoryScene
           onPlayAgain={playAgain}
           onMenu={openMenu}
@@ -155,7 +168,7 @@ export function App() {
           <h1>Battleship</h1>
           <p>Sink the enemy fleet before it sinks yours.</p>
         </div>
-        <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
+        {audioControls}
       </header>
 
       <StatusPanel state={state} onRestart={playAgain} onMenu={openMenu} />

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { MARCH_BPM, MARCH_LOOP_BEATS, marchNotes } from './march'
+import {
+  MARCH_BPM,
+  MARCH_LOOP_BEATS,
+  MUSIC_TRACKS,
+  marchNotes,
+} from './march'
+import { MUSIC_TRACK_IDS } from './settings'
 
 describe('marchNotes', () => {
   const notes = marchNotes()
@@ -56,5 +62,61 @@ describe('marchNotes', () => {
   it('returns notes in playback order', () => {
     const beats = notes.map((note) => note.beat)
     expect([...beats].sort((a, b) => a - b)).toEqual(beats)
+  })
+})
+
+describe('MUSIC_TRACKS', () => {
+  it('exposes every selectable track', () => {
+    expect(Object.keys(MUSIC_TRACKS).sort()).toEqual([...MUSIC_TRACK_IDS].sort())
+    for (const id of MUSIC_TRACK_IDS) {
+      expect(MUSIC_TRACKS[id].id).toBe(id)
+      expect(MUSIC_TRACKS[id].label).not.toBe('')
+    }
+  })
+
+  it('keeps the original march as the solemn option', () => {
+    const track = MUSIC_TRACKS['solemn-march']
+    expect(track.bpm).toBe(MARCH_BPM)
+    expect(track.loopBeats).toBe(MARCH_LOOP_BEATS)
+    expect(track.notes()).toEqual(marchNotes())
+  })
+
+  it('keeps every note of every track inside its loop', () => {
+    for (const id of MUSIC_TRACK_IDS) {
+      const track = MUSIC_TRACKS[id]
+      const notes = track.notes()
+      expect(notes.length).toBeGreaterThan(0)
+      for (const note of notes) {
+        expect(note.beat).toBeGreaterThanOrEqual(0)
+        expect(note.beat + note.length).toBeLessThanOrEqual(track.loopBeats)
+      }
+      const beats = notes.map((note) => note.beat)
+      expect([...beats].sort((a, b) => a - b)).toEqual(beats)
+    }
+  })
+
+  it('makes the anthem brisker and busier than the march', () => {
+    const anthem = MUSIC_TRACKS['brass-anthem']
+    expect(anthem.bpm).toBeGreaterThan(MARCH_BPM)
+    const snares = anthem.notes().filter((note) => note.voice === 'snare')
+    expect(snares).toHaveLength(anthem.loopBeats / 2)
+    const melody = anthem.notes().filter((note) => note.voice === 'brass')
+    expect(melody.length).toBeGreaterThan(0)
+  })
+
+  it('makes the ambient bed slow, pitched low and percussion-free', () => {
+    const ambient = MUSIC_TRACKS['ambient-drone']
+    const notes = ambient.notes()
+    expect(ambient.bpm).toBeLessThan(MARCH_BPM)
+    expect(notes.every((note) => note.voice === 'drone')).toBe(true)
+    expect(notes.every((note) => note.freq < 250)).toBe(true)
+    expect(notes.every((note) => note.length >= 5)).toBe(true)
+  })
+
+  it('gives each track a distinct arrangement', () => {
+    const signatures = MUSIC_TRACK_IDS.map((id) =>
+      JSON.stringify(MUSIC_TRACKS[id].notes()),
+    )
+    expect(new Set(signatures).size).toBe(MUSIC_TRACK_IDS.length)
   })
 })
