@@ -291,7 +291,9 @@ class SoundPlayer {
     const musicReverb = ctx.createConvolver()
     musicReverb.buffer = impulseResponse(ctx, 1.9)
     const musicReverbSend = ctx.createGain()
-    musicReverbSend.gain.value = 0.22
+    // 0.22 into what used to be a 0.5 shared reverb bus, so the wet/dry ratio
+    // of the march is unchanged by the split.
+    musicReverbSend.gain.value = 0.22 * 0.5
     music.connect(musicReverbSend).connect(musicReverb).connect(musicVolume)
 
     this.context = ctx
